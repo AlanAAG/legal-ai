@@ -150,5 +150,31 @@ export const operationService = {
     if (docsError) throw docsError;
 
     return mapDbOperationToOperation(dbOp as DbOperation, agent, dbDocs as DbDocumentSlot[]);
+  },
+
+  async getOperationByToken(token: string): Promise<Operation | null> {
+    const { data: opData, error: opError } = await supabase
+      .from('operations')
+      .select(`
+        *,
+        agents (*)
+      `)
+      .eq('share_token', token)
+      .single();
+
+    if (opError) {
+      if (opError.code === 'PGRST116') return null;
+      throw opError;
+    }
+
+    const { data: docsData, error: docsError } = await supabase
+      .from('document_slots')
+      .select('*')
+      .eq('operation_id', opData.id);
+
+    if (docsError) throw docsError;
+
+    const agent: Agent = mapDbAgentToAgent(opData.agents);
+    return mapDbOperationToOperation(opData as DbOperation, agent, docsData as DbDocumentSlot[]);
   }
 };

@@ -33,19 +33,32 @@ export const sellerService = {
   },
 
   /**
-   * Uploads a document via the public editor function
+   * Uploads a document via public anonymous access
    */
-  async uploadPublicDocument(shareToken: string, slotId: string, file: File): Promise<any> {
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('slotId', slotId);
-    formData.append('shareToken', shareToken);
+  async uploadPublicDocument(shareToken: string, slotId: string, file: File): Promise<void> {
+    console.log(`Public upload initiated for token: ${shareToken.substring(0, 5)}...`);
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${Math.random()}.${fileExt}`;
+    const filePath = `public/${slotId}/${fileName}`;
 
-    const { data, error } = await supabase.functions.invoke('seller-upload', {
-      body: formData,
-    });
+    // 1. Upload to Storage (bucket 'documentos' allows anon insert)
+    const { error: storageError } = await supabase.storage
+      .from('documentos')
+      .upload(filePath, file);
 
-    if (error) throw error;
-    return data;
+    if (storageError) throw storageError;
+
+    // 2. Update Document Slot (RLS allows update where true)
+    const { error: dbError } = await supabase
+      .from('document_slots')
+      .update({
+        storage_path: filePath,
+        file_name: file.name,
+        status: 'subido',
+        uploaded_at: new Date().toISOString()
+      })
+      .eq('id', slotId);
+
+    if (dbError) throw dbError;
   }
 };

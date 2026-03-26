@@ -3,6 +3,7 @@ import type { Operation, DocumentSlot, DocumentCategory } from '../../../types';
 import { FileText, Upload, CheckCircle2, Loader2, ExternalLink, AlertCircle, AlertTriangle } from 'lucide-react';
 import { documentService } from '../services/documentService';
 import { analysisService } from '../services/analysisService';
+import { useRealtimeSlot } from '../../../hooks/useRealtimeSlot';
 
 interface Props {
   operation: Operation;
@@ -14,7 +15,7 @@ export const OperationDocuments: React.FC<Props> = ({ operation, onRefresh }) =>
 
   // Filtering logic based on operation context
   const filteredDocs = useMemo(() => {
-    return operation.documentos.filter(doc => {
+    return operation.documentos.filter((doc: DocumentSlot) => {
       // Seller type filter
       if (doc.soloPersona && doc.soloPersona !== operation.vendedor.tipo) return false;
 
@@ -44,7 +45,7 @@ export const OperationDocuments: React.FC<Props> = ({ operation, onRefresh }) =>
       vendedorMoral: []
     };
 
-    filteredDocs.forEach(doc => {
+    filteredDocs.forEach((doc: DocumentSlot) => {
       groups[doc.categoria].push(doc);
     });
 
@@ -53,9 +54,9 @@ export const OperationDocuments: React.FC<Props> = ({ operation, onRefresh }) =>
 
   // Stats
   const totalRelevant = filteredDocs.length;
-  const totalUploaded = filteredDocs.filter(d => d.estado === 'subido' || d.estado === 'validado' || d.estado === 'con_alerta').length;
+  const totalUploaded = filteredDocs.filter((d: DocumentSlot) => d.estado === 'subido' || d.estado === 'validado' || d.estado === 'con_alerta').length;
   const remaining = totalRelevant - totalUploaded;
-  const totalAlerts = filteredDocs.filter(d => d.estado === 'con_alerta').length;
+  const totalAlerts = filteredDocs.filter((d: DocumentSlot) => d.estado === 'con_alerta').length;
 
   const handleUpload = async (docId: string, file: File) => {
     const maxSize = 20 * 1024 * 1024;
@@ -75,14 +76,7 @@ export const OperationDocuments: React.FC<Props> = ({ operation, onRefresh }) =>
       setRowStates(prev => ({ ...prev, [docId]: { loading: true, error: null } }));
       const result = await documentService.uploadDocument(operation.id, docId, file);
       
-      // Polling is handled via useRealtimeSlot in DocumentRow or here
-      // For consistency with F4, we'll keep the polling trigger in the handler but let onRefresh handle the state update
-      const unsubscribe = analysisService.pollSlotStatus(docId, async () => {
-        await onRefresh();
-        unsubscribe();
-        setRowStates(prev => ({ ...prev, [docId]: { loading: false, error: null } }));
-      });
-
+      // Analysis is triggered here, completion will be caught by useRealtimeSlot in DocumentRow
       await analysisService.triggerAnalysis(docId, operation.id, result.storagePath);
       
     } catch (err) {
@@ -167,6 +161,8 @@ export const OperationDocuments: React.FC<Props> = ({ operation, onRefresh }) =>
                   state={rowStates[doc.id] || { loading: false, error: null }}
                   onUpload={(file) => handleUpload(doc.id, file)} 
                   onView={() => doc.storagePath && handleViewDocument(doc.storagePath)}
+                  onRefresh={onRefresh}
+                  onLoadingEnd={() => setRowStates(prev => ({ ...prev, [doc.id]: { loading: false, error: null } }))}
                 />
               ))}
             </div>
@@ -183,12 +179,24 @@ interface RowProps {
   state: { loading: boolean; error: string | null };
   onUpload: (file: File) => void;
   onView: () => void;
+  onRefresh: () => Promise<void>;
+  onLoadingEnd: () => void;
 }
 
-const DocumentRow: React.FC<RowProps> = ({ doc, state, onUpload, onView }) => {
+const DocumentRow: React.FC<RowProps> = ({ doc, state, onUpload, onView, onRefresh, onLoadingEnd }) => {
   const isUploaded = doc.estado === 'subido' || doc.estado === 'validado' || doc.estado === 'con_alerta';
   const hasAlert = doc.estado === 'con_alerta' || (doc.redFlags && doc.redFlags.length > 0);
   const isAnalizando = state.loading || doc.analisisStatus === 'procesando';
+
+  // Use Realtime Hook
+  useRealtimeSlot(
+    doc.id, 
+    () => {
+      onRefresh();
+      onLoadingEnd();
+    }, 
+    isAnalizando
+  );
   const isCompletado = doc.analisisStatus === 'completado';
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [showFlags, setShowFlags] = useState(false);

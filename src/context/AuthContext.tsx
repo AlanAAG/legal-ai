@@ -46,58 +46,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return null;
   };
 
-  /**
-   * Ensure an agent profile exists. If not found, create it from the client.
-   * If creation also fails (e.g. RLS), return null gracefully — never hang.
-   */
-  const ensureAgentProfile = async (authUser: User): Promise<Agent | null> => {
-    // Attempt 1: fetch
-    let agentData = await fetchAgent(authUser.id);
-    if (agentData) return agentData;
-
-    // Small delay for DB trigger
-    await new Promise(r => setTimeout(r, 800));
-    agentData = await fetchAgent(authUser.id);
-    if (agentData) return agentData;
-
-    // Trigger didn't fire — try creating from client
-    console.log('[AuthContext] Creating agent profile from client...');
-    try {
-      const fullName = authUser.user_metadata?.full_name || '';
-      const { data, error } = await supabase
-        .from('agents')
-        .insert({
-          id: authUser.id,
-          nombre: fullName,
-          email: authUser.email || '',
-          telefono: '',
-          agencia: 'Independiente',
-          es_ampi: false
-        })
-        .select()
-        .single();
-
-      if (data && !error) {
-        console.log('[AuthContext] Agent profile created successfully');
-        return mapDbAgentToAgent(data as DbAgent);
-      }
-
-      if (error) {
-        // Unique constraint violation = trigger fired late, fetch again
-        if (error.code === '23505') {
-          return await fetchAgent(authUser.id);
-        }
-        console.error('[AuthContext] Insert agent failed:', error.message, error.code);
-      }
-    } catch (err) {
-      console.error('[AuthContext] Insert agent exception:', err);
-    }
-
-    // Everything failed — return null, don't hang
-    console.warn('[AuthContext] Could not create agent profile. User will see fallback UI.');
-    return null;
-  };
-
   // Public method to refresh agent data (e.g., after profile update)
   const refreshAgent = useCallback(async () => {
     if (user) {
@@ -128,9 +76,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setUser(currentUser);
 
         if (currentUser) {
-          // fetch agent without awaiting it indefinitely for the 'loading' state
-          // but we still want to try to have it before we stop loading if possible
-          const agentPromise = ensureAgentProfile(currentUser);
+          // fetch agent profile
+          const agentPromise = fetchAgent(currentUser.id);
           const timeoutPromise = new Promise<null>(r => setTimeout(() => r(null), 5000)); // 5s max wait for agent fetch
           
           const agentData = await Promise.race([agentPromise, timeoutPromise]);
@@ -154,7 +101,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUser(currentUser);
       
       if (currentUser) {
-        const agentData = await ensureAgentProfile(currentUser);
+        const agentData = await fetchAgent(currentUser.id);
         if (isMounted) setAgent(agentData);
       } else {
         setAgent(null);
