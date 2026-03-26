@@ -14,7 +14,16 @@ export type DocumentCategory =
   | 'vendedorFisica' 
   | 'vendedorMoral';
 
-export type DocumentState = 'no_subido' | 'subido';
+export type DocumentState = 'pendiente' | 'subido' | 'validado' | 'rechazado' | 'con_alerta';
+export type AnalysisStatus = 'pendiente' | 'procesando' | 'completado' | 'error';
+export type Severity = 'bloqueante' | 'advertencia' | 'info';
+
+export interface RedFlag {
+  ruleId: string;
+  severidad: Severity;
+  mensaje: string;
+  detectedAt: string;
+}
 
 export interface Agent {
   id: string;
@@ -62,12 +71,17 @@ export interface DocumentSlot {
   estado: DocumentState;
   archivoNombre?: string;
   fechaSubida?: string;
+  storagePath?: string;
+  analisisStatus?: AnalysisStatus;
+  redFlags?: RedFlag[];
 }
 
 export interface Operation {
   id: string;
+  shareToken: string;
   agente: Agent;
   vendedor: Seller;
   inmueble: Property;
   documentos: DocumentSlot[];
+  createdAt: string;
 }

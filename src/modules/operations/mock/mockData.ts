@@ -28,7 +28,7 @@ export const ALL_DOCUMENT_SLOTS: DocumentSlot[] = [
     descripcion: 'Correspondiente al año en curso',
     categoria: 'propiedad',
     esObligatorio: true,
-    estado: 'no_subido'
+    estado: 'pendiente'
   },
   {
     id: 'prop-4',
@@ -36,7 +36,7 @@ export const ALL_DOCUMENT_SLOTS: DocumentSlot[] = [
     descripcion: 'Planos arquitectónicos de la propiedad',
     categoria: 'propiedad',
     esObligatorio: false,
-    estado: 'no_subido'
+    estado: 'pendiente'
   },
 
   // CONDOMINIO
@@ -47,7 +47,7 @@ export const ALL_DOCUMENT_SLOTS: DocumentSlot[] = [
     categoria: 'condominio',
     esObligatorio: true,
     condicion: 'condominio',
-    estado: 'no_subido'
+    estado: 'pendiente'
   },
   {
     id: 'cond-2',
@@ -56,7 +56,7 @@ export const ALL_DOCUMENT_SLOTS: DocumentSlot[] = [
     categoria: 'condominio',
     esObligatorio: true,
     condicion: 'condominio',
-    estado: 'no_subido'
+    estado: 'pendiente'
   },
   {
     id: 'cond-3',
@@ -65,7 +65,7 @@ export const ALL_DOCUMENT_SLOTS: DocumentSlot[] = [
     categoria: 'condominio',
     esObligatorio: true,
     condicion: 'condominio',
-    estado: 'no_subido'
+    estado: 'pendiente'
   },
 
   // CONSTRUCCION
@@ -76,7 +76,7 @@ export const ALL_DOCUMENT_SLOTS: DocumentSlot[] = [
     categoria: 'construccion',
     esObligatorio: true,
     condicion: 'construccion',
-    estado: 'no_subido'
+    estado: 'pendiente'
   },
   {
     id: 'const-2',
@@ -85,7 +85,7 @@ export const ALL_DOCUMENT_SLOTS: DocumentSlot[] = [
     categoria: 'construccion',
     esObligatorio: true,
     condicion: 'construccion',
-    estado: 'no_subido'
+    estado: 'pendiente'
   },
   {
     id: 'const-3',
@@ -94,7 +94,7 @@ export const ALL_DOCUMENT_SLOTS: DocumentSlot[] = [
     categoria: 'construccion',
     esObligatorio: false,
     condicion: 'construccion',
-    estado: 'no_subido'
+    estado: 'pendiente'
   },
   {
     id: 'const-4',
@@ -103,7 +103,7 @@ export const ALL_DOCUMENT_SLOTS: DocumentSlot[] = [
     categoria: 'construccion',
     esObligatorio: true,
     condicion: 'construccion',
-    estado: 'no_subido'
+    estado: 'pendiente'
   },
 
   // SUCESION TESTAMENTARIA
@@ -114,7 +114,7 @@ export const ALL_DOCUMENT_SLOTS: DocumentSlot[] = [
     categoria: 'sucesion',
     esObligatorio: true,
     condicion: 'sucesionTestamentaria',
-    estado: 'no_subido'
+    estado: 'pendiente'
   },
   {
     id: 'st-2',
@@ -123,7 +123,7 @@ export const ALL_DOCUMENT_SLOTS: DocumentSlot[] = [
     categoria: 'sucesion',
     esObligatorio: true,
     condicion: 'sucesionTestamentaria',
-    estado: 'no_subido'
+    estado: 'pendiente'
   },
 
   // SUCESION INTESTAMENTARIA
@@ -134,7 +134,7 @@ export const ALL_DOCUMENT_SLOTS: DocumentSlot[] = [
     categoria: 'sucesion',
     esObligatorio: true,
     condicion: 'sucesionIntestamentaria',
-    estado: 'no_subido'
+    estado: 'pendiente'
   },
 
   // VENDEDOR PERSONA FISICA
@@ -156,7 +156,7 @@ export const ALL_DOCUMENT_SLOTS: DocumentSlot[] = [
     categoria: 'vendedorFisica',
     esObligatorio: true,
     soloPersona: 'fisica',
-    estado: 'no_subido'
+    estado: 'pendiente'
   },
   {
     id: 'vf-3',
@@ -165,7 +165,7 @@ export const ALL_DOCUMENT_SLOTS: DocumentSlot[] = [
     categoria: 'vendedorFisica',
     esObligatorio: true,
     soloPersona: 'fisica',
-    estado: 'no_subido'
+    estado: 'pendiente'
   },
   {
     id: 'vf-4',
@@ -174,7 +174,7 @@ export const ALL_DOCUMENT_SLOTS: DocumentSlot[] = [
     categoria: 'vendedorFisica',
     esObligatorio: true,
     soloPersona: 'fisica',
-    estado: 'no_subido'
+    estado: 'pendiente'
   },
   {
     id: 'vf-5',
@@ -183,7 +183,7 @@ export const ALL_DOCUMENT_SLOTS: DocumentSlot[] = [
     categoria: 'vendedorFisica',
     esObligatorio: true,
     soloPersona: 'fisica',
-    estado: 'no_subido'
+    estado: 'pendiente'
   },
   {
     id: 'vf-6',
@@ -192,7 +192,7 @@ export const ALL_DOCUMENT_SLOTS: DocumentSlot[] = [
     categoria: 'vendedorFisica',
     esObligatorio: true,
     soloPersona: 'fisica',
-    estado: 'no_subido'
+    estado: 'pendiente'
   },
 
   // VENDEDOR PERSONA MORAL
@@ -203,7 +203,7 @@ export const ALL_DOCUMENT_SLOTS: DocumentSlot[] = [
     categoria: 'vendedorMoral',
     esObligatorio: true,
     soloPersona: 'moral',
-    estado: 'no_subido'
+    estado: 'pendiente'
   },
   {
     id: 'vm-2',
@@ -212,7 +212,7 @@ export const ALL_DOCUMENT_SLOTS: DocumentSlot[] = [
     categoria: 'vendedorMoral',
     esObligatorio: true,
     soloPersona: 'moral',
-    estado: 'no_subido'
+    estado: 'pendiente'
   },
   {
     id: 'vm-3',
@@ -221,7 +221,7 @@ export const ALL_DOCUMENT_SLOTS: DocumentSlot[] = [
     categoria: 'vendedorMoral',
     esObligatorio: true,
     soloPersona: 'moral',
-    estado: 'no_subido'
+    estado: 'pendiente'
   },
   {
     id: 'vm-4',
@@ -230,7 +230,7 @@ export const ALL_DOCUMENT_SLOTS: DocumentSlot[] = [
     categoria: 'vendedorMoral',
     esObligatorio: true,
     soloPersona: 'moral',
-    estado: 'no_subido'
+    estado: 'pendiente'
   },
   {
     id: 'vm-5',
@@ -239,7 +239,7 @@ export const ALL_DOCUMENT_SLOTS: DocumentSlot[] = [
     categoria: 'vendedorMoral',
     esObligatorio: true,
     soloPersona: 'moral',
-    estado: 'no_subido'
+    estado: 'pendiente'
   },
   {
     id: 'vm-6',
@@ -248,12 +248,14 @@ export const ALL_DOCUMENT_SLOTS: DocumentSlot[] = [
     categoria: 'vendedorMoral',
     esObligatorio: true,
     soloPersona: 'moral',
-    estado: 'no_subido'
+    estado: 'pendiente'
   }
 ];
 
 export const mockOperation: Operation = {
-  id: '1',
+  id: 'op-123',
+  shareToken: '550e8400-e29b-41d4-a716-446655440000',
+  createdAt: '2024-04-23T10:00:00Z',
   agente: {
     id: 'agent-123',
     nombre: 'Sofía Martínez',
