@@ -5,22 +5,23 @@ import { OperationDashboard } from './modules/operations/pages/OperationDashboar
 import { SellerPortalPage } from './pages/SellerPortalPage';
 import OperationsListPage from './pages/OperationsListPage';
 import LoginPage from './pages/LoginPage';
+import ProfilePage from './pages/ProfilePage';
 import { useAuth } from './context/AuthContext';
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  // const { user, loading } = useAuth();
+  const { user, loading } = useAuth();
   
-  // if (loading) {
-  //   return (
-  //     <div className="min-h-screen bg-[#F8F9FA] flex items-center justify-center">
-  //       <div className="w-8 h-8 border-4 border-[#C5A059] border-t-transparent rounded-full animate-spin"></div>
-  //     </div>
-  //   );
-  // }
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[#F8F9FA] flex items-center justify-center">
+        <div className="w-8 h-8 border-4 border-[#C5A059] border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    );
+  }
   
-  // if (!user) {
-  //   return <Navigate to="/login" replace />;
-  // }
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
   
   return <>{children}</>;
 };
@@ -55,6 +56,12 @@ const App: React.FC = () => {
             <Route path="/operaciones/:operationId" element={
               <ProtectedRoute>
                 <OperationDashboard />
+              </ProtectedRoute>
+            } />
+
+            <Route path="/perfil" element={
+              <ProtectedRoute>
+                <ProfilePage />
               </ProtectedRoute>
             } />
             

@@ -1,10 +1,10 @@
 export interface DbAgent {
   id: string; // matches auth.users.id
-  full_name: string;
+  nombre: string;
   email: string;
-  phone: string;
-  agency_name: string;
-  is_ampi_member: boolean;
+  telefono: string;
+  agencia: string;
+  es_ampi: boolean;
   created_at: string;
 }
 

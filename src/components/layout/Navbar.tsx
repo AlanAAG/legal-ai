@@ -1,8 +1,11 @@
 import React from 'react';
-import { Layout, User, Bell } from 'lucide-react';
+import { Layout, User, Bell, LogOut } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 
 export const Navbar: React.FC = () => {
+  const { agent, signOut } = useAuth();
+
   return (
     <nav className="fixed top-0 left-0 right-0 h-16 bg-[#001529] border-b border-white/10 z-50 flex items-center justify-between px-6">
       <div className="flex items-center gap-3">
@@ -25,15 +28,29 @@ export const Navbar: React.FC = () => {
         
         <div className="h-8 w-[1px] bg-white/10"></div>
 
-        <div className="flex items-center gap-3 group cursor-pointer">
-          <div className="text-right">
-            <p className="text-white text-sm font-medium group-hover:text-[#C5A059] transition-colors">Sofía Martínez</p>
-            <p className="text-white/40 text-[10px] uppercase tracking-wider">Agente Premium</p>
+        <Link to="/perfil" className="flex items-center gap-3 group cursor-pointer text-left">
+          <div className="hidden sm:block text-right">
+            <p className="text-white text-sm font-medium group-hover:text-[#C5A059] transition-colors">
+              {agent?.nombre || 'Perfil no encontrado'}
+            </p>
+            <p className="text-white/40 text-[10px] uppercase tracking-wider">
+              {agent ? (agent.esAMPI ? 'Agente AMPI' : 'Agente') : 'Error de Sesión'}
+            </p>
           </div>
           <div className="w-9 h-9 rounded-full bg-white/5 border border-white/10 flex items-center justify-center group-hover:border-[#C5A059] transition-all overflow-hidden bg-gradient-to-br from-[#001529] to-[#002140]">
             <User className="text-white/60 w-5 h-5 group-hover:text-[#C5A059]" />
           </div>
-        </div>
+        </Link>
+        
+        <div className="h-8 w-[1px] bg-white/10 ml-2"></div>
+
+        <button 
+          onClick={() => signOut()}
+          className="p-2 text-white/40 hover:text-red-400 transition-colors group relative"
+          title="Cerrar Sesión"
+        >
+          <LogOut className="w-5 h-5" />
+        </button>
       </div>
     </nav>
   );

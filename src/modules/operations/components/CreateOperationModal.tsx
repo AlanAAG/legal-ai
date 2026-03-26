@@ -22,6 +22,7 @@ interface Props {
 
 const CreateOperationModal: React.FC<Props> = ({ isOpen, onClose, onConfirm, isSubmitting }) => {
   const [step, setStep] = useState(1);
+  const [errors, setErrors] = useState<string[]>([]);
   const [formData, setFormData] = useState<CreateOperationInput>({
     seller: {
       nombreCompleto: '',
@@ -46,14 +47,43 @@ const CreateOperationModal: React.FC<Props> = ({ isOpen, onClose, onConfirm, isS
 
   if (!isOpen) return null;
 
-  const nextStep = () => setStep(s => s + 1);
-  const prevStep = () => setStep(s => s - 1);
+  const validateStep = (currentStep: number): boolean => {
+    const newErrors: string[] = [];
+    
+    if (currentStep === 1) {
+      if (!formData.seller.nombreCompleto.trim()) newErrors.push('nombreCompleto');
+      if (!formData.seller.telefono.trim()) newErrors.push('telefono');
+      if (!formData.seller.email.trim()) newErrors.push('email');
+    } else if (currentStep === 2) {
+      if (!formData.property.calle.trim()) newErrors.push('calle');
+      if (!formData.property.numeroExterior.trim()) newErrors.push('numeroExterior');
+      if (!formData.property.colonia.trim()) newErrors.push('colonia');
+      if (!formData.property.alcaldia.trim()) newErrors.push('alcaldia');
+      if (!formData.property.codigoPostal.trim()) newErrors.push('codigoPostal');
+    }
+
+    setErrors(newErrors);
+    return newErrors.length === 0;
+  };
+
+  const nextStep = () => {
+    if (validateStep(step)) {
+      setStep(s => s + 1);
+    }
+  };
+
+  const prevStep = () => {
+    setErrors([]);
+    setStep(s => s - 1);
+  };
 
   const steps = [
     { title: 'Vendedor', icon: User },
     { title: 'Inmueble', icon: Home },
     { title: 'Confirmar', icon: CheckCircle2 }
   ];
+
+  const hasError = (field: string) => errors.includes(field);
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
@@ -126,7 +156,7 @@ const CreateOperationModal: React.FC<Props> = ({ isOpen, onClose, onConfirm, isS
                       type="text" 
                       value={formData.seller.nombreCompleto}
                       onChange={e => setFormData({ ...formData, seller: { ...formData.seller, nombreCompleto: e.target.value } })}
-                      className="w-full px-4 py-3 rounded-2xl border border-slate-200 focus:border-[#C5A059] focus:ring-4 focus:ring-[#C5A059]/10 outline-none transition-all"
+                      className={`w-full px-4 py-3 rounded-2xl border ${hasError('nombreCompleto') ? 'border-red-500 bg-red-50/30' : 'border-slate-200'} focus:border-[#C5A059] focus:ring-4 focus:ring-[#C5A059]/10 outline-none transition-all`}
                       placeholder="Juan Pérez García"
                     />
                   </div>
@@ -152,7 +182,7 @@ const CreateOperationModal: React.FC<Props> = ({ isOpen, onClose, onConfirm, isS
                       type="tel" 
                       value={formData.seller.telefono}
                       onChange={e => setFormData({ ...formData, seller: { ...formData.seller, telefono: e.target.value } })}
-                      className="w-full px-4 py-3 rounded-2xl border border-slate-200 focus:border-[#C5A059] focus:ring-4 focus:ring-[#C5A059]/10 outline-none transition-all"
+                      className={`w-full px-4 py-3 rounded-2xl border ${hasError('telefono') ? 'border-red-500 bg-red-50/30' : 'border-slate-200'} focus:border-[#C5A059] focus:ring-4 focus:ring-[#C5A059]/10 outline-none transition-all`}
                       placeholder="55 0000 0000"
                     />
                   </div>
@@ -163,7 +193,7 @@ const CreateOperationModal: React.FC<Props> = ({ isOpen, onClose, onConfirm, isS
                       type="email" 
                       value={formData.seller.email}
                       onChange={e => setFormData({ ...formData, seller: { ...formData.seller, email: e.target.value } })}
-                      className="w-full px-4 py-3 rounded-2xl border border-slate-200 focus:border-[#C5A059] focus:ring-4 focus:ring-[#C5A059]/10 outline-none transition-all"
+                      className={`w-full px-4 py-3 rounded-2xl border ${hasError('email') ? 'border-red-500 bg-red-50/30' : 'border-slate-200'} focus:border-[#C5A059] focus:ring-4 focus:ring-[#C5A059]/10 outline-none transition-all`}
                       placeholder="juan@email.com"
                     />
                   </div>
@@ -213,14 +243,14 @@ const CreateOperationModal: React.FC<Props> = ({ isOpen, onClose, onConfirm, isS
                         placeholder="Calle"
                         value={formData.property.calle}
                         onChange={e => setFormData({ ...formData, property: { ...formData.property, calle: e.target.value } })}
-                        className="flex-[3] px-4 py-3 rounded-2xl border border-slate-200 focus:border-[#C5A059] outline-none"
+                        className={`flex-[3] px-4 py-3 rounded-2xl border ${hasError('calle') ? 'border-red-500 bg-red-50/30' : 'border-slate-200'} focus:border-[#C5A059] outline-none`}
                       />
                       <input 
                         type="text" 
                         placeholder="No."
                         value={formData.property.numeroExterior}
                         onChange={e => setFormData({ ...formData, property: { ...formData.property, numeroExterior: e.target.value } })}
-                        className="flex-1 px-4 py-3 rounded-2xl border border-slate-200 focus:border-[#C5A059] outline-none text-center"
+                        className={`flex-1 px-4 py-3 rounded-2xl border ${hasError('numeroExterior') ? 'border-red-500 bg-red-50/30' : 'border-slate-200'} focus:border-[#C5A059] outline-none text-center`}
                       />
                     </div>
                   </div>
@@ -231,15 +261,36 @@ const CreateOperationModal: React.FC<Props> = ({ isOpen, onClose, onConfirm, isS
                       placeholder="Colonia"
                       value={formData.property.colonia}
                       onChange={e => setFormData({ ...formData, property: { ...formData.property, colonia: e.target.value } })}
-                      className="px-4 py-3 rounded-2xl border border-slate-200 focus:border-[#C5A059] outline-none"
+                      className={`px-4 py-3 rounded-2xl border ${hasError('colonia') ? 'border-red-500 bg-red-50/30' : 'border-slate-200'} focus:border-[#C5A059] outline-none`}
                     />
                     <input 
                       type="text" 
                       placeholder="Alcaldía"
                       value={formData.property.alcaldia}
                       onChange={e => setFormData({ ...formData, property: { ...formData.property, alcaldia: e.target.value } })}
-                      className="px-4 py-3 rounded-2xl border border-slate-200 focus:border-[#C5A059] outline-none"
+                      className={`px-4 py-3 rounded-2xl border ${hasError('alcaldia') ? 'border-red-500 bg-red-50/30' : 'border-slate-200'} focus:border-[#C5A059] outline-none`}
                     />
+                  </div>
+
+                  <div className="col-span-2 grid grid-cols-2 gap-4">
+                    <input 
+                      type="text" 
+                      placeholder="Código Postal"
+                      value={formData.property.codigoPostal}
+                      onChange={e => setFormData({ ...formData, property: { ...formData.property, codigoPostal: e.target.value } })}
+                      className={`px-4 py-3 rounded-2xl border ${hasError('codigoPostal') ? 'border-red-500 bg-red-50/30' : 'border-slate-200'} focus:border-[#C5A059] outline-none`}
+                    />
+                    <select 
+                      value={formData.property.estado}
+                      onChange={e => setFormData({ ...formData, property: { ...formData.property, estado: e.target.value } })}
+                      className="px-4 py-3 rounded-2xl border border-slate-200 focus:border-[#C5A059] outline-none bg-white"
+                    >
+                      <option value="CDMX">CDMX</option>
+                      <option value="Edomex">Edomex</option>
+                      <option value="Jalisco">Jalisco</option>
+                      <option value="Nuevo León">Nuevo León</option>
+                      <option value="Querétaro">Querétaro</option>
+                    </select>
                   </div>
 
                   <div className="col-span-2 bg-white p-6 rounded-[24px] border border-slate-100 space-y-4 shadow-sm">
@@ -320,6 +371,15 @@ const CreateOperationModal: React.FC<Props> = ({ isOpen, onClose, onConfirm, isS
                       <p className="text-slate-400 text-xs mt-1 capitalize">{formData.property.tipo} {formData.property.uso} • {formData.property.colonia}</p>
                     </div>
                   </div>
+
+                  {errors.length > 0 && (
+                    <div className="p-4 bg-red-50 rounded-2xl border border-red-100 flex items-start gap-3 animate-shake">
+                      <AlertCircle className="w-5 h-5 text-red-500 shrink-0 mt-0.5" />
+                      <p className="text-[11px] text-red-600 leading-relaxed font-bold">
+                        Por favor, completa todos los campos requeridos marcados en rojo antes de continuar.
+                      </p>
+                    </div>
+                  )}
 
                   <div className="p-4 bg-[#001529]/5 rounded-2xl border border-[#001529]/10 flex items-start gap-3">
                     <AlertCircle className="w-5 h-5 text-[#001529] shrink-0 mt-0.5" />

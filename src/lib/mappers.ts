@@ -3,11 +3,11 @@ import type { Agent, Operation, Seller, Property, DocumentSlot, DocumentCategory
 
 export const mapDbAgentToAgent = (dbAgent: DbAgent): Agent => ({
   id: dbAgent.id,
-  nombre: dbAgent.full_name,
+  nombre: dbAgent.nombre,
   email: dbAgent.email,
-  telefono: dbAgent.phone,
-  agencia: dbAgent.agency_name,
-  esAMPI: dbAgent.is_ampi_member
+  telefono: dbAgent.telefono,
+  agencia: dbAgent.agencia,
+  esAMPI: dbAgent.es_ampi
 });
 
 export const mapDbDocumentSlotToDocumentSlot = (dbDoc: DbDocumentSlot): DocumentSlot => ({

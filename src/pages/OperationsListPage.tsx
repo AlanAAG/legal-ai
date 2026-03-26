@@ -12,17 +12,21 @@ import {
   CheckCircle2, 
   ChevronRight,
   FileText,
-  Loader2
+  Loader2,
+  AlertTriangle,
+  LogOut,
+  RefreshCcw
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import CreateOperationModal from '../modules/operations/components/CreateOperationModal';
 
 const OperationsListPage: React.FC = () => {
-  const { agent, user } = useAuth();
+  const { agent, user, loading: authLoading, signOut, refreshAgent } = useAuth();
   const [operations, setOperations] = useState<OperationSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isRetryingProfile, setIsRetryingProfile] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -44,40 +48,103 @@ const OperationsListPage: React.FC = () => {
   };
 
   const handleCreateOperation = async (data: CreateOperationInput) => {
-    if (!agent || !user) return;
+    if (!user) return;
+    if (!agent) {
+      alert('Error: No se encontró su perfil de agente. Por favor, asegúrese de haber confirmado su correo electrónico y recargue la página.');
+      return;
+    }
     setIsSubmitting(true);
     try {
       // Create with real agent data
       const mappedAgent = {
         id: user.id,
-        nombre: agent.full_name,
+        nombre: agent.nombre,
         email: agent.email,
-        telefono: agent.phone,
-        agencia: agent.agency_name,
-        esAMPI: agent.is_ampi_member
+        telefono: agent.telefono,
+        agencia: agent.agencia,
+        esAMPI: agent.esAMPI
       };
 
       const newOp = await operationService.createOperation(data, mappedAgent);
       navigate(`/operaciones/${newOp.id}`);
     } catch (err) {
       console.error('Error creating operation:', err);
-      alert('Error al crear la operación. Intente de nuevo.');
+      if (!agent) {
+        alert('No se encontró el perfil de agente. Por favor, asegúrese de haber confirmado su correo o intente recargar la página.');
+      } else {
+        alert('Error al crear la operación. Intente de nuevo.');
+      }
     } finally {
       setIsSubmitting(false);
       setIsModalOpen(false);
     }
   };
 
-  if (loading) {
+  if (authLoading || (loading && user)) {
     return (
-      <div className="min-h-screen bg-[#F8F9FA] flex items-center justify-center">
+      <div className="min-h-screen bg-[#F8F9FA] flex flex-col gap-4 items-center justify-center">
         <Loader2 className="w-10 h-10 text-[#C5A059] animate-spin" />
+        <p className="text-slate-400 font-medium animate-pulse">Sincronizando sesión...</p>
+      </div>
+    );
+  }
+
+  // Fallback for stale session (User exists, Agent doesn't)
+  if (user && !agent) {
+    return (
+      <div className="min-h-screen bg-[#F8F9FA] pt-16 flex items-center justify-center p-6">
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="max-w-md w-full bg-white rounded-[40px] p-12 shadow-2xl border border-slate-100 text-center space-y-8"
+        >
+          <div className="w-20 h-20 bg-amber-50 rounded-3xl flex items-center justify-center mx-auto border border-amber-100">
+            <AlertTriangle className="w-10 h-10 text-amber-500" />
+          </div>
+          <div className="space-y-2">
+            <h2 className="text-2xl font-black text-[#001529]">Error de Perfil</h2>
+            <p className="text-slate-500 text-sm font-medium leading-relaxed px-4">
+              Hemos detectado tu sesión pero no pudimos conectar con tu perfil de Agente. 
+              Esto suele ocurrir si el registro inicial falló.
+            </p>
+          </div>
+          
+          <div className="space-y-4 pt-4">
+            <button 
+              onClick={async () => {
+                setIsRetryingProfile(true);
+                await refreshAgent();
+                setIsRetryingProfile(false);
+              }}
+              disabled={isRetryingProfile}
+              className="w-full bg-[#001529] text-white py-4 rounded-2xl font-black text-sm flex items-center justify-center gap-2 hover:bg-[#002140] transition-colors"
+            >
+              {isRetryingProfile ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <RefreshCcw className="w-4 h-4" />
+              )}
+              <span>Reintentar conexión</span>
+            </button>
+            <button 
+              onClick={() => signOut()}
+              className="w-full bg-slate-50 text-slate-500 py-4 rounded-2xl font-black text-sm flex items-center justify-center gap-2 hover:bg-slate-100 hover:text-red-500 transition-all border border-slate-100"
+            >
+              <LogOut className="w-4 h-4" />
+              <span>Cerrar sesión y reintentar</span>
+            </button>
+          </div>
+
+          <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest pt-4 leading-relaxed">
+            Si el error persiste, asegúrate de haber ejecutado los scripts SQL de estabilización en Supabase.
+          </p>
+        </motion.div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#F8F9FA] pb-20">
+    <div className="min-h-screen bg-[#F8F9FA] pb-20 pt-16">
       <div className="max-w-7xl mx-auto px-6 py-12">
         {/* Header Section */}
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12">
