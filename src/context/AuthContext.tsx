@@ -97,13 +97,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       if (!isMounted) return;
       
+      // Set loading to true while fetching agent to prevent premature redirect errors
+      setLoading(true);
+      
       const currentUser = session?.user ?? null;
-      setUser(currentUser);
       
       if (currentUser) {
+        // Defer setUser slightly or let it update but loading=true protects the UI
+        setUser(currentUser);
         const agentData = await fetchAgent(currentUser.id);
         if (isMounted) setAgent(agentData);
       } else {
+        setUser(null);
         setAgent(null);
       }
       

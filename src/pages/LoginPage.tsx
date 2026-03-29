@@ -54,6 +54,21 @@ const LoginPage: React.FC = () => {
     }
   };
 
+  const handleDemoLogin = async () => {
+    setError(null);
+    setIsSubmitting(true);
+    try {
+      const { error: signInError } = await signIn('demo@aiabogado.com', 'demo1234');
+      if (signInError) {
+        setError('Error en Demo Login: ' + signInError.message);
+      }
+    } catch (err) {
+      setError('Ocurrió un error inesperado. Intente más tarde.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   // Clear errors when toggling between modes
   const toggleMode = () => {
     setError(null);
@@ -200,6 +215,17 @@ const LoginPage: React.FC = () => {
                   <span>{isLogin ? 'Iniciar sesión' : 'Crear cuenta'}</span>
                 )}
               </button>
+
+              {isLogin && (
+                <button
+                  type="button"
+                  onClick={handleDemoLogin}
+                  disabled={isSubmitting}
+                  className="w-full bg-slate-50 text-[#C5A059] py-4 rounded-2xl font-black text-sm hover:bg-slate-100 transition-all flex items-center justify-center gap-2 active:scale-[0.98] disabled:opacity-70 disabled:active:scale-100 border border-slate-200"
+                >
+                  🚀 Demo Login (Mágico)
+                </button>
+              )}
             </form>
 
             <div className="mt-8 text-center">

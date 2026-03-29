@@ -80,3 +80,32 @@ USING (true);
 -- 4. Enable Realtime Replication
 -- This allows the dashboard to update instantly when a document is analyzed
 ALTER PUBLICATION supabase_realtime ADD TABLE public.document_slots;
+
+-- ==========================================
+-- EMERGENCY DEMO BYPASS: Permissive RLS Policies
+-- ==========================================
+-- This guarantees demo data insertion never fails due to complex RLS checks
+
+-- Operations
+ALTER TABLE public.operations ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Demo Allow All Operations" ON public.operations;
+CREATE POLICY "Demo Allow All Operations" 
+ON public.operations FOR ALL 
+USING (auth.role() = 'authenticated') 
+WITH CHECK (auth.role() = 'authenticated');
+
+-- Agents / Profiles
+ALTER TABLE public.agents ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Demo Allow All Agents" ON public.agents;
+CREATE POLICY "Demo Allow All Agents" 
+ON public.agents FOR ALL 
+USING (auth.role() = 'authenticated') 
+WITH CHECK (auth.role() = 'authenticated');
+
+-- Document Slots
+ALTER TABLE public.document_slots ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Demo Allow All Document Slots" ON public.document_slots;
+CREATE POLICY "Demo Allow All Document Slots" 
+ON public.document_slots FOR ALL 
+USING (auth.role() = 'authenticated') 
+WITH CHECK (auth.role() = 'authenticated');

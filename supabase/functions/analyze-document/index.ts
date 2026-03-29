@@ -42,11 +42,49 @@ serve(async (req) => {
 
     if (downloadError) throw downloadError
 
-    // 4. Extract Text (Basic simulation using TextDecoder for simplicity in this deterministic version)
+    // 4. MOCK MODE: Check for specific filename for the demo
+    const isMockDemo = storagePath.toLowerCase().includes('demo_donacion')
+    const now = new Date()
+
+    if (isMockDemo) {
+      const mockFlags = [
+        {
+          rule_id: 'mock_sociedad_conyugal',
+          severidad: 'bloqueante',
+          mensaje: "Se detectó que el vendedor está casado bajo sociedad conyugal. Se requiere la firma del cónyuge ya que es un bien mancomunado.",
+          detected_at: now.toISOString()
+        },
+        {
+          rule_id: 'mock_donacion',
+          severidad: 'advertencia',
+          mensaje: "La escritura analizada indica que el título de propiedad es una DONACIÓN. Se recomienda verificar si el donante aún vive para evitar posibles revocaciones.",
+          detected_at: now.toISOString()
+        }
+      ]
+
+      await supabase
+        .from('document_slots')
+        .update({
+          red_flags: mockFlags,
+          analisis_status: 'completado',
+          status: 'con_alerta'
+        })
+        .eq('id', slotId)
+
+      return new Response(JSON.stringify({ 
+        slotId, 
+        isMockMode: true,
+        flags: mockFlags 
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 200,
+      })
+    }
+
+    // 5. Extract Text (Basic simulation using TextDecoder for simplicity in this deterministic version)
     // In a real production environment, we would use a more robust PDF parser or OCR
     const contentText = new TextDecoder().decode(await fileData.arrayBuffer())
     const flags = []
-    const now = new Date()
 
     // 5. Run Rules Based on Slot Keys/Metadata
     // Note: In this version we use slot definitions from Phase F2/F3

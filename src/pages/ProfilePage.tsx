@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { agentService } from '../modules/operations/services/agentService';
-import { User, Phone, Building, Star, Save, Loader2, ShieldCheck, AlertTriangle, LogOut, RefreshCcw } from 'lucide-react';
+import { User, Phone, Building, Star, Save, Loader2, ShieldCheck } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const ProfilePage: React.FC = () => {
@@ -31,14 +31,14 @@ const ProfilePage: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!agent) return;
+    if (!user) return;
 
     setIsLoading(true);
     setError(null);
     setSuccess(false);
 
     try {
-      await agentService.updateProfile(agent.id, formData);
+      await agentService.updateProfile(user.id, formData);
       // Refresh the AuthContext so Navbar updates immediately
       await refreshAgent();
       setSuccess(true);
@@ -60,38 +60,69 @@ const ProfilePage: React.FC = () => {
   }
 
   if (user && !agent) {
+    // If user exists but agent profile is missing, initialize email and allow "Edit" mode to create it
+    if (formData.nombre === '' && user.email) {
+      setFormData(prev => ({ ...prev, email: user.email }));
+    }
+
     return (
-      <div className="min-h-screen bg-[#F8F9FA] pt-16 flex items-center justify-center p-6">
+      <div className="pt-24 pb-12 min-h-screen px-6 flex items-center justify-center">
         <motion.div 
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="max-w-md w-full bg-white rounded-[40px] p-12 shadow-2xl border border-slate-100 text-center space-y-8"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="max-w-xl w-full"
         >
-          <div className="w-20 h-20 bg-amber-50 rounded-3xl flex items-center justify-center mx-auto border border-amber-100">
-            <AlertTriangle className="w-10 h-10 text-amber-500" />
-          </div>
-          <div className="space-y-2">
-            <h2 className="text-2xl font-black text-[#001529]">Perfil No Encontrado</h2>
-            <p className="text-slate-500 text-sm font-medium leading-relaxed px-4">
-              Tu sesión está activa, pero no logramos obtener tus datos de agente. 
-              Reintenta la conexión o cierra sesión para volver a intentarlo.
-            </p>
-          </div>
-          
-          <div className="space-y-4 pt-4">
-            <button 
-              onClick={() => refreshAgent()}
-              className="w-full bg-[#001529] text-white py-4 rounded-2xl font-black text-sm flex items-center justify-center gap-2 hover:bg-[#002140] transition-colors"
-            >
-              <RefreshCcw className="w-4 h-4" />
-              <span>Reintentar conexión</span>
-            </button>
+          <div className="bg-white rounded-[40px] p-12 shadow-2xl border border-slate-100 space-y-8">
+            <div className="w-20 h-20 bg-[#C5A059]/10 rounded-3xl flex items-center justify-center mx-auto border border-[#C5A059]/20">
+              <User className="w-10 h-10 text-[#C5A059]" />
+            </div>
+            <div className="text-center space-y-2">
+              <h2 className="text-2xl font-black text-[#001529]">Completa tu Perfil</h2>
+              <p className="text-slate-500 text-sm font-medium leading-relaxed">
+                Necesitamos unos últimos detalles para activar tu cuenta de agente y empezar a gestionar expedientes.
+              </p>
+            </div>
+            
+            <form onSubmit={handleSubmit} className="space-y-6">
+              <div className="space-y-2">
+                <label className="text-[10px] uppercase tracking-widest font-black text-slate-400 ml-1">Nombre Completo</label>
+                <input 
+                  type="text"
+                  required
+                  value={formData.nombre}
+                  onChange={(e) => setFormData({...formData, nombre: e.target.value})}
+                  className="w-full px-4 py-4 bg-slate-50 border border-slate-140 rounded-2xl text-slate-700 text-sm focus:ring-2 focus:ring-[#C5A059]/20 focus:border-[#C5A059] outline-none transition-all"
+                  placeholder="Ej. Juan Pérez"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-[10px] uppercase tracking-widest font-black text-slate-400 ml-1">Agencia / Inmobiliaria</label>
+                <input 
+                  type="text"
+                  required
+                  value={formData.agencia}
+                  onChange={(e) => setFormData({...formData, agencia: e.target.value})}
+                  className="w-full px-4 py-4 bg-slate-50 border border-slate-140 rounded-2xl text-slate-700 text-sm focus:ring-2 focus:ring-[#C5A059]/20 focus:border-[#C5A059] outline-none transition-all"
+                  placeholder="Nombre de tu empresa"
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={isLoading}
+                className="w-full bg-[#001529] text-white py-4 rounded-2xl font-black text-sm flex items-center justify-center gap-3 shadow-xl hover:bg-[#002140] transition-all"
+              >
+                {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
+                Guardar y Activar Perfil
+              </button>
+            </form>
+
             <button 
               onClick={() => signOut()}
-              className="w-full bg-slate-50 text-slate-500 py-4 rounded-2xl font-black text-sm flex items-center justify-center gap-2 hover:bg-slate-100 hover:text-red-500 transition-all border border-slate-100"
+              className="w-full text-slate-400 text-xs font-bold hover:text-red-500 transition-colors"
             >
-              <LogOut className="w-4 h-4" />
-              <span>Cerrar sesión</span>
+              Cerrar Sesión
             </button>
           </div>
         </motion.div>

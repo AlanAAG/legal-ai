@@ -5,7 +5,7 @@ import type { Agent } from '../../../types';
 
 export const agentService = {
   async updateProfile(id: string, updates: Partial<Agent>): Promise<Agent> {
-    const dbUpdates: Partial<DbAgent> = {};
+    const dbUpdates: any = { id: id }; // Required for upsert to match by ID
     
     if (updates.nombre) dbUpdates.nombre = updates.nombre;
     if (updates.email) dbUpdates.email = updates.email;
@@ -15,8 +15,7 @@ export const agentService = {
 
     const { data, error } = await supabase
       .from('agents')
-      .update(dbUpdates)
-      .eq('id', id)
+      .upsert(dbUpdates)
       .select()
       .single();
 
