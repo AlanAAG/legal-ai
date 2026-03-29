@@ -44,24 +44,34 @@ serve(async (req) => {
     if (isMockDemo) {
       const mockFlags = [
         {
-          rule_id: 'mock_sociedad_conyugal',
-          severidad: 'bloqueante',
-          mensaje: "Se detectó que el vendedor está casado bajo sociedad conyugal. Se requiere la firma del cónyuge ya que es un bien mancomunado.",
-          detected_at: now.toISOString()
+          type: 'bloqueante',
+          title: "🛑 Régimen de Sociedad Conyugal",
+          description: "Se detectó que el vendedor está casado bajo sociedad conyugal. Se requiere la firma del cónyuge ya que es un bien mancomunado.",
+          severity: 'bloqueante'
         },
         {
-          rule_id: 'mock_donacion',
-          severidad: 'advertencia',
-          mensaje: "La escritura analizada indica que el título de propiedad es una DONACIÓN. Se recomienda verificar si el donante aún vive para evitar posibles revocaciones.",
-          detected_at: now.toISOString()
+          type: 'advertencia',
+          title: "⚠️ Adquisición por Donación",
+          description: "La escritura analizada indica que el título de propiedad es una DONACIÓN. Se recomienda verificar si el donante aún vive para evitar posibles revocaciones.",
+          severity: 'advertencia'
         }
       ]
+
+      // Relational Insert
+      for (const flag of mockFlags) {
+        await supabase.from('detected_red_flags').insert({
+          document_slot_id: slotId,
+          type: flag.type,
+          title: flag.title,
+          description: flag.description,
+          severity: flag.severity
+        })
+      }
 
       await supabase
         .from('document_slots')
         .update({
-          red_flags: mockFlags,
-          analisis_status: 'completado',
+          analysis_status: 'analyzed',
           status: 'con_alerta'
         })
         .eq('id', slotId)
@@ -94,19 +104,19 @@ serve(async (req) => {
             const diffDays = Math.floor((now.getTime() - docDate.getTime()) / (1000 * 3600 * 24))
             if (diffDays > 90) {
                 flags.push({
-                    rule_id: 'expiry_fiscal_3m',
-                    severidad: 'bloqueante',
-                    mensaje: "La fecha detectada supera los 90 días. Verificar fecha de emisión.",
-                    detected_at: now.toISOString()
+                    type: 'expiry_fiscal_3m',
+                    title: "Expiración Fiscal",
+                    description: "La fecha detectada supera los 90 días. Verificar fecha de emisión.",
+                    severity: 'bloqueante'
                 })
             }
         } else {
              // If no date found on a critical document, flag it
              flags.push({
-                rule_id: 'expiry_fiscal_3m',
-                severidad: 'bloqueante',
-                mensaje: "No se detectó una fecha de emisión clara. El documento puede estar vencido.",
-                detected_at: now.toISOString()
+                type: 'expiry_fiscal_3m',
+                title: "Fecha no detectada",
+                description: "No se detectó una fecha de emisión clara. El documento puede estar vencido.",
+                severity: 'bloqueante'
             })
         }
     }
@@ -118,10 +128,10 @@ serve(async (req) => {
             const latestYear = Math.max(...yearMatch.map(Number))
             if (now.getFullYear() - latestYear > 1) {
                 flags.push({
-                    rule_id: 'expiry_power_1y',
-                    severidad: 'bloqueante',
-                    mensaje: "El poder notarial parece tener más de 1 año. Verificar vigencia.",
-                    detected_at: now.toISOString()
+                    type: 'expiry_power_1y',
+                    title: "Poder Notarial Vencido",
+                    description: "El poder notarial parece tener más de 1 año. Verificar vigencia.",
+                    severity: 'bloqueante'
                 })
             }
         }
@@ -131,26 +141,26 @@ serve(async (req) => {
     if (slotName.includes('escritura')) {
         if (/donación|donatario|donante|título gratuito/i.test(contentText)) {
             flags.push({
-                rule_id: 'keyword_donation',
-                severidad: 'advertencia',
-                mensaje: "La escritura contiene lenguaje de donación. Verificar régimen fiscal y restricciones.",
-                detected_at: now.toISOString()
+                type: 'keyword_donation',
+                title: "Título de Donación",
+                description: "La escritura contiene lenguaje de donación. Verificar régimen fiscal y restricciones.",
+                severity: 'advertencia'
             })
         }
         if (/usufructo|usufructuario|nuda propiedad/i.test(contentText)) {
             flags.push({
-                rule_id: 'keyword_usufruct',
-                severidad: 'advertencia',
-                mensaje: "La escritura menciona usufructo. Confirmar si está vigente.",
-                detected_at: now.toISOString()
+                type: 'keyword_usufruct',
+                title: "Usufructo Detectado",
+                description: "La escritura menciona usufructo. Confirmar si está vigente.",
+                severity: 'advertencia'
             })
         }
         if (/embargo|gravamen|hipoteca|anotación preventiva/i.test(contentText)) {
             flags.push({
-                rule_id: 'keyword_lien',
-                severidad: 'bloqueante',
-                mensaje: "Se detectó lenguaje de gravamen o embargo. Revisión urgente requerida.",
-                detected_at: now.toISOString()
+                type: 'keyword_lien',
+                title: "Gravamen Detectado",
+                description: "Se detectó lenguaje de gravamen o embargo. Revisión urgente requerida.",
+                severity: 'bloqueante'
             })
         }
     }
@@ -159,24 +169,33 @@ serve(async (req) => {
     if (slotName.includes('identificación') || slotName.includes('ine')) {
         if (!/INSTITUTO NACIONAL ELECTORAL|CREDENCIAL PARA VOTAR|CURP/i.test(contentText)) {
             flags.push({
-                rule_id: 'presence_ine',
-                severidad: 'advertencia',
-                mensaje: "El archivo puede no ser una identificación oficial válida. Verificar logotipo o texto oficial.",
-                detected_at: now.toISOString()
+                type: 'presence_ine',
+                title: "Identificación no válida",
+                description: "El archivo puede no ser una identificación oficial válida. Verificar logotipo o texto oficial.",
+                severity: 'advertencia'
             })
         }
     }
 
-    // 6. Update DB with results
-    const hasBloqueante = flags.some(f => f.severidad === 'bloqueante')
-    const finalStatus = (flags.length > 0 && slot.is_required) ? 'con_alerta' : 'subido'
+    // 6. Relational Insert for all flags
+    for (const flag of flags) {
+      await supabase.from('detected_red_flags').insert({
+        document_slot_id: slotId,
+        type: flag.type,
+        title: flag.title,
+        description: flag.description,
+        severity: flag.severity
+      })
+    }
+
+    const hasBloqueante = flags.some(f => f.severity === 'bloqueante')
+    const finalStatus = (flags.length > 0 && slot.is_required) ? 'con_alerta' : 'uploaded'
 
     const { error: updateError } = await supabase
       .from('document_slots')
       .update({
-        red_flags: flags,
-        analisis_status: 'completado',
-        status: flags.length > 0 ? (hasBloqueante ? 'con_alerta' : 'subido') : 'subido'
+        analysis_status: 'analyzed',
+        status: flags.length > 0 ? (hasBloqueante ? 'con_alerta' : 'uploaded') : 'uploaded'
       })
       .eq('id', slotId)
 

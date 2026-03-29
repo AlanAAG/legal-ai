@@ -49,8 +49,8 @@ export const analysisService = {
       await supabase
         .from('document_slots')
         .update({
-          analisis_status: 'completado',
-          status: 'analyzed'
+          analysis_status: 'analyzed',
+          status: 'alert'
         })
         .eq('id', slotId);
         
@@ -86,7 +86,7 @@ export const analysisService = {
         },
         (payload) => {
           const updatedSlot = payload.new as DbDocumentSlot;
-          if (updatedSlot.analisis_status === 'completado') {
+          if (updatedSlot.analysis_status === 'analyzed') {
             onComplete(updatedSlot);
           }
         }

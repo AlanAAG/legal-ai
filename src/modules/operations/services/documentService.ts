@@ -46,11 +46,11 @@ export const documentService = {
     const { error: dbError } = await supabase
       .from('document_slots')
       .update({
-        status: 'subido',
+        status: 'uploaded',
         storage_path: storagePath,
         file_name: sanitizedName,
         uploaded_at: new Date().toISOString(),
-        analisis_status: 'pendiente'
+        analysis_status: 'pending'
       })
       .eq('id', slotId);
 
@@ -92,11 +92,11 @@ export const documentService = {
     const { error: dbError } = await supabase
       .from('document_slots')
       .update({
-        status: 'pendiente',
+        status: 'pending',
         storage_path: null,
         file_name: null,
         uploaded_at: null,
-        analisis_status: 'pendiente'
+        analysis_status: 'pending'
       })
       .eq('id', slotId);
 
@@ -149,10 +149,13 @@ export const documentService = {
     
     // Map to frontend format
     return data.map(f => ({
-      ruleId: f.id,
-      severidad: f.severity,
-      mensaje: f.title + ': ' + f.description,
-      detectedAt: f.created_at
+      id: f.id,
+      document_slot_id: f.document_slot_id,
+      type: f.type,
+      title: f.title,
+      description: f.description,
+      severity: f.severity,
+      created_at: f.created_at
     }));
   }
 };

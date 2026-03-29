@@ -59,12 +59,11 @@ serve(async (req) => {
     const { error: updateError } = await supabase
       .from("document_slots")
       .update({
-        estado: "subido",
+        status: "uploaded",
         storage_path: storagePath,
-        archivo_nombre: file.name,
-        fecha_subida: new Date().toISOString(),
-        analisis_status: "pendiente",
-        red_flags: [], // Clear old flags if replacing
+        file_name: file.name,
+        uploaded_at: new Date().toISOString(),
+        analysis_status: "pending",
       })
       .eq("id", slotId);
 

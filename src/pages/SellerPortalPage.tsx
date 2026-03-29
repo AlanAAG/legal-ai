@@ -171,7 +171,7 @@ interface RowProps {
 }
 
 const SellerDocumentRow: React.FC<RowProps> = ({ doc, state, onUpload }) => {
-  const isUploaded = doc.estado === 'subido' || doc.estado === 'validado' || doc.estado === 'con_alerta' || state.success;
+  const isUploaded = doc.status === 'uploaded' || doc.status === 'validated' || doc.status === 'alert' || state.success;
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   return (
@@ -185,8 +185,8 @@ const SellerDocumentRow: React.FC<RowProps> = ({ doc, state, onUpload }) => {
 
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-3 mb-1">
-            <h4 className="text-sm font-bold text-slate-800 tracking-tight">{doc.nombre}</h4>
-            {doc.esObligatorio && (
+            <h4 className="text-sm font-bold text-slate-800 tracking-tight">{doc.name}</h4>
+            {doc.is_required && (
               <span className="text-[9px] font-black uppercase text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-100">
                 Obligatorio
               </span>
@@ -197,7 +197,7 @@ const SellerDocumentRow: React.FC<RowProps> = ({ doc, state, onUpload }) => {
               </span>
             )}
           </div>
-          <p className="text-xs text-slate-500 line-clamp-1 leading-relaxed">{doc.descripcion}</p>
+          <p className="text-xs text-slate-500 line-clamp-1 leading-relaxed">{doc.description}</p>
           
           {state.error && (
             <p className="text-[10px] font-bold text-red-500 mt-2 flex items-center gap-1">

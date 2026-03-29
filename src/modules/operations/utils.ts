@@ -30,16 +30,16 @@ export const calculateProgress = (operation: Operation) => {
   const requiredDocs = operation.documentos.filter(doc => {
     // Visibility logic (same as in DocumentosTab)
     const isVisible = 
-      (doc.categoria === 'condominio' ? operation.inmueble.esCondominio : true) &&
-      (doc.categoria === 'construccion' ? operation.inmueble.tieneConstruccionOAmpliacion : true) &&
-      (doc.categoria === 'sucesion' ? operation.inmueble.sucesionTipo !== 'ninguna' : true) &&
+      (doc.category === 'condominio' ? operation.inmueble.esCondominio : true) &&
+      (doc.category === 'construccion' ? operation.inmueble.tieneConstruccionOAmpliacion : true) &&
+      (doc.category === 'sucesion' ? operation.inmueble.sucesionTipo !== 'ninguna' : true) &&
       (doc.soloPersona ? doc.soloPersona === operation.vendedor.tipo : true);
 
-    return isVisible && doc.esObligatorio;
+    return isVisible && doc.is_required;
   });
 
   const totalRequired = requiredDocs.length;
-  const totalUploaded = requiredDocs.filter(d => d.estado === 'subido').length;
+  const totalUploaded = requiredDocs.filter(d => d.status === 'uploaded').length;
   const percentage = totalRequired > 0 ? Math.round((totalUploaded / totalRequired) * 100) : 0;
 
   return {

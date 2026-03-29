@@ -14,15 +14,18 @@ export type DocumentCategory =
   | 'vendedorFisica' 
   | 'vendedorMoral';
 
-export type DocumentState = 'pendiente' | 'subido' | 'validado' | 'rechazado' | 'con_alerta' | 'analyzed';
-export type AnalysisStatus = 'pendiente' | 'procesando' | 'completado' | 'error';
-export type Severity = 'bloqueante' | 'advertencia' | 'info';
+export type DocumentState = 'pending' | 'uploaded' | 'validated' | 'rejected' | 'alert' | 'analyzed';
+export type AnalysisStatus = 'pending' | 'processing' | 'analyzed' | 'error';
+export type Severity = 'high' | 'medium' | 'low';
 
 export interface RedFlag {
-  ruleId: string;
-  severidad: Severity;
-  mensaje: string;
-  detectedAt: string;
+  id: string;
+  document_slot_id: string;
+  type: string;
+  title: string;
+  description: string;
+  severity: Severity;
+  created_at: string;
 }
 
 export interface Agent {
@@ -62,18 +65,17 @@ export interface Property {
 
 export interface DocumentSlot {
   id: string;
-  nombre: string;
-  descripcion: string;
-  categoria: DocumentCategory;
-  esObligatorio: boolean;
+  name: string;
+  description: string;
+  category: DocumentCategory;
+  is_required: boolean;
   soloPersona?: SellerType;
   condicion?: 'condominio' | 'construccion' | 'sucesionTestamentaria' | 'sucesionIntestamentaria';
-  estado: DocumentState;
-  archivoNombre?: string;
-  fechaSubida?: string;
+  status: DocumentState;
+  file_name?: string;
+  uploaded_at?: string;
   storagePath?: string;
-  analisisStatus?: AnalysisStatus;
-  redFlags?: RedFlag[];
+  analysis_status?: AnalysisStatus;
 }
 
 export interface Operation {

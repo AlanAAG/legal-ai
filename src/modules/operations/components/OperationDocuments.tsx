@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
-import type { Operation, DocumentSlot, DocumentCategory } from '../../../types';
+import type { Operation, DocumentSlot, DocumentCategory, RedFlag } from '../../../types';
 import { FileText, Upload, CheckCircle2, Loader2, ExternalLink, AlertCircle, AlertTriangle } from 'lucide-react';
 import { documentService } from '../services/documentService';
 import { analysisService } from '../services/analysisService';
@@ -21,11 +21,11 @@ export const OperationDocuments: React.FC<Props> = ({ operation, onRefresh }) =>
       if (doc.soloPersona && doc.soloPersona !== operation.vendedor.tipo) return false;
 
       // Conditional flags
-      if (doc.categoria === 'condominio' && !operation.inmueble.esCondominio) return false;
-      if (doc.categoria === 'construccion' && !operation.inmueble.tieneConstruccionOAmpliacion) return false;
+      if (doc.category === 'condominio' && !operation.inmueble.esCondominio) return false;
+      if (doc.category === 'construccion' && !operation.inmueble.tieneConstruccionOAmpliacion) return false;
       
       // Sucesión specific conditions
-      if (doc.categoria === 'sucesion') {
+      if (doc.category === 'sucesion') {
         if (operation.inmueble.sucesionTipo === 'ninguna') return false;
         if (doc.condicion === 'sucesionTestamentaria' && operation.inmueble.sucesionTipo !== 'testamentaria') return false;
         if (doc.condicion === 'sucesionIntestamentaria' && operation.inmueble.sucesionTipo !== 'intestamentaria') return false;
@@ -37,27 +37,27 @@ export const OperationDocuments: React.FC<Props> = ({ operation, onRefresh }) =>
 
   // Grouping logic
   const sections = useMemo(() => {
-    const groups: Record<DocumentCategory, DocumentSlot[]> = {
-      propiedad: [],
-      condominio: [],
-      construccion: [],
-      sucesion: [],
-      vendedorFisica: [],
-      vendedorMoral: []
-    };
+  const groups: Record<DocumentCategory, DocumentSlot[]> = {
+    propiedad: [],
+    condominio: [],
+    construccion: [],
+    sucesion: [],
+    vendedorFisica: [],
+    vendedorMoral: []
+  };
 
-    filteredDocs.forEach((doc: DocumentSlot) => {
-      groups[doc.categoria].push(doc);
-    });
+  filteredDocs.forEach((doc: DocumentSlot) => {
+    groups[doc.category].push(doc);
+  });
 
-    return Object.entries(groups).filter(([_, docs]) => docs.length > 0) as [DocumentCategory, DocumentSlot[]][];
-  }, [filteredDocs]);
+  return Object.entries(groups).filter(([_, docs]) => docs.length > 0) as [DocumentCategory, DocumentSlot[]][];
+}, [filteredDocs]);
 
   // Stats
   const totalRelevant = filteredDocs.length;
-  const totalUploaded = filteredDocs.filter((d: DocumentSlot) => d.estado === 'subido' || d.estado === 'validado' || d.estado === 'con_alerta' || d.estado === 'analyzed').length;
+  const totalUploaded = filteredDocs.filter((d: DocumentSlot) => d.status === 'uploaded' || d.status === 'validated' || d.status === 'alert' || d.status === 'analyzed').length;
   const remaining = totalRelevant - totalUploaded;
-  const totalAlerts = filteredDocs.filter((d: DocumentSlot) => d.estado === 'con_alerta' || d.estado === 'analyzed').length;
+  const totalAlerts = filteredDocs.filter((d: DocumentSlot) => d.status === 'alert' || d.status === 'analyzed').length;
 
   const handleUpload = async (docId: string, file: File) => {
     const maxSize = 20 * 1024 * 1024;
@@ -189,16 +189,16 @@ interface RowProps {
 }
 
 const DocumentRow: React.FC<RowProps> = ({ doc, state, onUpload, onView, onRefresh, onLoadingEnd }) => {
-  const isUploaded = doc.estado === 'subido' || doc.estado === 'validado' || doc.estado === 'con_alerta' || doc.estado === 'analyzed';
-  const isAnalizando = state.loading || doc.analisisStatus === 'procesando';
-  const isCompletado = doc.analisisStatus === 'completado';
+  const isUploaded = doc.status === 'uploaded' || doc.status === 'validated' || doc.status === 'alert' || doc.status === 'analyzed';
+  const isAnalizando = state.loading || doc.analysis_status === 'processing';
+  const isAnalyzed = doc.analysis_status === 'analyzed';
   
-  const [flags, setFlags] = useState<any[]>([]);
+  const [flags, setFlags] = useState<RedFlag[]>([]);
   const [fetchingFlags, setFetchingFlags] = useState(false);
   const [showFlags, setShowFlags] = useState(false);
 
   useEffect(() => {
-    if (isCompletado && (doc.estado === 'con_alerta' || doc.estado === 'analyzed')) {
+    if (isAnalyzed && (doc.status === 'alert' || doc.status === 'analyzed')) {
       const fetchFlags = async () => {
         setFetchingFlags(true);
         try {
@@ -211,10 +211,12 @@ const DocumentRow: React.FC<RowProps> = ({ doc, state, onUpload, onView, onRefre
         }
       };
       fetchFlags();
+    } else {
+      setFlags([]);
     }
-  }, [isCompletado, doc.estado, doc.id]);
+  }, [isAnalyzed, doc.status, doc.id]);
 
-  const hasAlert = flags.length > 0 || (doc.redFlags && doc.redFlags.length > 0) || doc.estado === 'con_alerta';
+  const hasAlert = flags.length > 0 || doc.status === 'alert';
 
   // Use Realtime Hook
   useRealtimeSlot(
@@ -230,20 +232,18 @@ const DocumentRow: React.FC<RowProps> = ({ doc, state, onUpload, onView, onRefre
 
   // Determine border color based on highest severity
   const maxSeverity = useMemo(() => {
-    // Priority to fetched flags, fallback to doc.redFlags
-    const currentFlags = flags.length > 0 ? flags : (doc.redFlags || []);
-    if (currentFlags.length === 0) return null;
-    if (currentFlags.some(f => f.severidad === 'bloqueante')) return 'bloqueante';
-    if (currentFlags.some(f => f.severidad === 'advertencia')) return 'advertencia';
-    return 'info';
-  }, [flags, doc.redFlags]);
+    if (flags.length === 0) return null;
+    if (flags.some(f => f.severity === 'high')) return 'high';
+    if (flags.some(f => f.severity === 'medium')) return 'medium';
+    return 'low';
+  }, [flags]);
 
   const borderClass = useMemo(() => {
-    if (!isUploaded || !hasAlert || !isCompletado) return 'border-slate-200';
-    if (maxSeverity === 'bloqueante') return 'border-red-200 bg-red-50/30';
-    if (maxSeverity === 'advertencia') return 'border-amber-200 bg-amber-50/30';
+    if (!isUploaded || !hasAlert || !isAnalyzed) return 'border-slate-200';
+    if (maxSeverity === 'high') return 'border-red-200 bg-red-50/30';
+    if (maxSeverity === 'medium') return 'border-amber-200 bg-amber-50/30';
     return 'border-blue-200 bg-blue-50/30';
-  }, [isUploaded, hasAlert, isCompletado, maxSeverity]);
+  }, [isUploaded, hasAlert, isAnalyzed, maxSeverity]);
 
   return (
     <div className={`group bg-white rounded-xl border p-5 hover:shadow-md transition-all ${borderClass}`}>
@@ -256,8 +256,8 @@ const DocumentRow: React.FC<RowProps> = ({ doc, state, onUpload, onView, onRefre
 
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-3 mb-1">
-            <h4 className="text-sm font-bold text-slate-800 truncate tracking-tight">{doc.nombre}</h4>
-            {doc.esObligatorio && (
+            <h4 className="text-sm font-bold text-slate-800 truncate tracking-tight">{doc.name}</h4>
+            {doc.is_required && (
               <span className="text-[9px] font-black uppercase text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-100">
                 Obligatorio
               </span>
@@ -270,20 +270,20 @@ const DocumentRow: React.FC<RowProps> = ({ doc, state, onUpload, onView, onRefre
                 Analizando documento...
               </span>
             )}
-            {isCompletado && !hasAlert && (
+            {isAnalyzed && !hasAlert && (
               <span className="flex items-center gap-1 text-[9px] font-bold text-green-600 bg-green-50 px-2 py-0.5 rounded-full border border-green-100">
                 <CheckCircle2 className="w-2.5 h-2.5" />
                 Sin alertas
               </span>
             )}
           </div>
-          <p className="text-xs text-slate-500 line-clamp-1 leading-relaxed">{doc.descripcion}</p>
+          <p className="text-xs text-slate-500 line-clamp-1 leading-relaxed">{doc.description}</p>
           
           {isUploaded && (
             <div className="flex items-center gap-2 mt-2 text-[10px] font-medium text-slate-400">
-              <span className="truncate max-w-[200px]">{doc.archivoNombre}</span>
+              <span className="truncate max-w-[200px]">{doc.file_name}</span>
               <span>•</span>
-              <span>Subido el {doc.fechaSubida}</span>
+              <span>Subido el {doc.uploaded_at ? new Date(doc.uploaded_at).toLocaleDateString() : 'N/A'}</span>
             </div>
           )}
 
@@ -295,7 +295,7 @@ const DocumentRow: React.FC<RowProps> = ({ doc, state, onUpload, onView, onRefre
           )}
 
           {/* Red Flags Action */}
-          {hasAlert && isCompletado && (
+          {hasAlert && isAnalyzed && (
             <button 
               onClick={() => setShowFlags(!showFlags)}
               disabled={fetchingFlags}
@@ -307,29 +307,29 @@ const DocumentRow: React.FC<RowProps> = ({ doc, state, onUpload, onView, onRefre
           )}
 
           {/* Collapsible Flag List */}
-          {hasAlert && isCompletado && showFlags && !fetchingFlags && (
+          {hasAlert && isAnalyzed && showFlags && !fetchingFlags && (
             <div className="mt-4 space-y-2 animate-in fade-in slide-in-from-top-2 duration-300">
               {flags.map((flag, idx) => (
                 <div 
                   key={idx} 
                   className={`flex items-start gap-3 p-3 rounded-xl border ${
-                    flag.severidad === 'bloqueante' 
+                    flag.severity === 'high' 
                     ? 'bg-red-50/50 border-red-100 text-red-700' 
-                    : flag.severidad === 'advertencia'
+                    : flag.severity === 'medium'
                     ? 'bg-amber-50/50 border-amber-100 text-amber-700'
                     : 'bg-blue-50/50 border-blue-100 text-blue-700'
                   }`}
                 >
                   <div className="mt-0.5">
-                    {flag.severidad === 'bloqueante' ? (
+                    {flag.severity === 'high' ? (
                       <div className="w-4 h-4 rounded-full bg-red-500 flex items-center justify-center text-white text-[10px] font-black">!</div>
                     ) : (
                       <AlertCircle className="w-4 h-4" />
                     )}
                   </div>
                   <div className="flex-1">
-                    <p className="text-[11px] font-bold leading-relaxed">{flag.mensaje}</p>
-                    <p className="text-[9px] mt-1 opacity-60 font-medium">Detectado el {new Date(flag.detectedAt).toLocaleString()}</p>
+                    <p className="text-[11px] font-bold leading-relaxed">{flag.title}: {flag.description}</p>
+                    <p className="text-[9px] mt-1 opacity-60 font-medium">Detectado el {new Date(flag.created_at).toLocaleString()}</p>
                   </div>
                 </div>
               ))}

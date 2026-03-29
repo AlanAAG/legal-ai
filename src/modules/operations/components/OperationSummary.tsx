@@ -14,10 +14,12 @@ export const OperationSummary: React.FC<Props> = ({ operation, onViewDocuments }
   const vendedor = operation.vendedor;
 
   // Aggregate Red Flags
-  const allFlags = operation.documentos.flatMap(d => d.redFlags || []);
-  const bloqueantes = allFlags.filter(f => f.severidad === 'bloqueante').length;
-  const advertencias = allFlags.filter(f => f.severidad === 'advertencia').length;
-  const totalAlerts = bloqueantes + advertencias;
+  const totalAlerts = operation.documentos.filter(d => d.status === 'alert' || d.status === 'analyzed').length;
+  // Note: We don't distinguish counts for summary here without extra queries, 
+  // but we show the overall alert status.
+  const hasBloqueantes = totalAlerts > 0; 
+  const advertencias = 0; // Simplified for summary
+  const bloqueantes = totalAlerts;
 
   return (
     <div className="space-y-8">
