@@ -16,7 +16,7 @@ export type DocumentCategory =
 
 export type DocumentState = 'pending' | 'uploaded' | 'validated' | 'rejected' | 'flagged' | 'analyzed';
 export type AnalysisStatus = 'pending' | 'analyzing' | 'analyzed' | 'error';
-export type Severity = 'high' | 'medium' | 'low';
+export type Severity = 'critical' | 'high' | 'medium' | 'low';
 
 export interface RedFlag {
   id: string;

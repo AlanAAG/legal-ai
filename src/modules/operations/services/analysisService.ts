@@ -21,16 +21,16 @@ export const analysisService = {
       
       const mockFlags = [
         {
-          type: 'bloqueante',
+          type: 'legal_blocker',
           title: "🛑 Régimen de Sociedad Conyugal",
           description: "Se detectó régimen mancomunado. Es obligatoria la firma e INE del cónyuge para proceder.",
-          severity: 'bloqueante'
+          severity: 'critical'
         },
         {
-          type: 'bloqueante',
+          type: 'financial_warning',
           title: "⚠️ Adquisición por Donación",
           description: "La propiedad fue adquirida por donación. No es apta para la mayoría de los créditos hipotecarios bancarios.",
-          severity: 'bloqueante'
+          severity: 'high'
         }
       ];
 
@@ -50,7 +50,7 @@ export const analysisService = {
         .from('document_slots')
         .update({
           analysis_status: 'analyzed',
-          status: 'alert'
+          status: 'flagged'
         })
         .eq('id', slotId);
         

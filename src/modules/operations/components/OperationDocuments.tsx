@@ -233,6 +233,7 @@ const DocumentRow: React.FC<RowProps> = ({ doc, state, onUpload, onView, onRefre
   // Determine border color based on highest severity
   const maxSeverity = useMemo(() => {
     if (flags.length === 0) return null;
+    if (flags.some(f => f.severity === 'critical')) return 'critical';
     if (flags.some(f => f.severity === 'high')) return 'high';
     if (flags.some(f => f.severity === 'medium')) return 'medium';
     return 'low';
@@ -240,6 +241,7 @@ const DocumentRow: React.FC<RowProps> = ({ doc, state, onUpload, onView, onRefre
 
   const borderClass = useMemo(() => {
     if (!isUploaded || !hasAlert || !isAnalyzed) return 'border-slate-200';
+    if (maxSeverity === 'critical') return 'border-red-400 bg-red-100/50';
     if (maxSeverity === 'high') return 'border-red-200 bg-red-50/30';
     if (maxSeverity === 'medium') return 'border-amber-200 bg-amber-50/30';
     return 'border-blue-200 bg-blue-50/30';
@@ -313,7 +315,7 @@ const DocumentRow: React.FC<RowProps> = ({ doc, state, onUpload, onView, onRefre
                 <div 
                   key={idx} 
                   className={`flex items-start gap-3 p-3 rounded-xl border ${
-                    flag.severity === 'high' 
+                    (flag.severity === 'high' || flag.severity === 'critical')
                     ? 'bg-red-50/50 border-red-100 text-red-700' 
                     : flag.severity === 'medium'
                     ? 'bg-amber-50/50 border-amber-100 text-amber-700'
@@ -321,7 +323,7 @@ const DocumentRow: React.FC<RowProps> = ({ doc, state, onUpload, onView, onRefre
                   }`}
                 >
                   <div className="mt-0.5">
-                    {flag.severity === 'high' ? (
+                    {(flag.severity === 'high' || flag.severity === 'critical') ? (
                       <div className="w-4 h-4 rounded-full bg-red-500 flex items-center justify-center text-white text-[10px] font-black">!</div>
                     ) : (
                       <AlertCircle className="w-4 h-4" />

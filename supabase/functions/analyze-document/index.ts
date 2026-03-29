@@ -44,16 +44,16 @@ serve(async (req) => {
     if (isMockDemo) {
       const mockFlags = [
         {
-          type: 'bloqueante',
+          type: 'legal_blocker',
           title: "🛑 Régimen de Sociedad Conyugal",
           description: "Se detectó que el vendedor está casado bajo sociedad conyugal. Se requiere la firma del cónyuge ya que es un bien mancomunado.",
-          severity: 'bloqueante'
+          severity: 'critical'
         },
         {
-          type: 'advertencia',
+          type: 'financial_warning',
           title: "⚠️ Adquisición por Donación",
           description: "La escritura analizada indica que el título de propiedad es una DONACIÓN. Se recomienda verificar si el donante aún vive para evitar posibles revocaciones.",
-          severity: 'advertencia'
+          severity: 'high'
         }
       ]
 
@@ -107,7 +107,7 @@ serve(async (req) => {
                     type: 'expiry_fiscal_3m',
                     title: "Expiración Fiscal",
                     description: "La fecha detectada supera los 90 días. Verificar fecha de emisión.",
-                    severity: 'bloqueante'
+                    severity: 'high'
                 })
             }
         } else {
@@ -131,7 +131,7 @@ serve(async (req) => {
                     type: 'expiry_power_1y',
                     title: "Poder Notarial Vencido",
                     description: "El poder notarial parece tener más de 1 año. Verificar vigencia.",
-                    severity: 'bloqueante'
+                    severity: 'high'
                 })
             }
         }
@@ -144,7 +144,7 @@ serve(async (req) => {
                 type: 'keyword_donation',
                 title: "Título de Donación",
                 description: "La escritura contiene lenguaje de donación. Verificar régimen fiscal y restricciones.",
-                severity: 'advertencia'
+                severity: 'medium'
             })
         }
         if (/usufructo|usufructuario|nuda propiedad/i.test(contentText)) {
@@ -152,7 +152,7 @@ serve(async (req) => {
                 type: 'keyword_usufruct',
                 title: "Usufructo Detectado",
                 description: "La escritura menciona usufructo. Confirmar si está vigente.",
-                severity: 'advertencia'
+                severity: 'medium'
             })
         }
         if (/embargo|gravamen|hipoteca|anotación preventiva/i.test(contentText)) {
@@ -172,7 +172,7 @@ serve(async (req) => {
                 type: 'presence_ine',
                 title: "Identificación no válida",
                 description: "El archivo puede no ser una identificación oficial válida. Verificar logotipo o texto oficial.",
-                severity: 'advertencia'
+                severity: 'medium'
             })
         }
     }
@@ -188,7 +188,7 @@ serve(async (req) => {
       })
     }
 
-    const hasBloqueante = flags.some(f => f.severity === 'bloqueante')
+    const hasBloqueante = flags.some(f => f.severity === 'high' || f.severity === 'critical')
     const finalStatus = (flags.length > 0 && slot.is_required) ? 'flagged' : 'uploaded'
 
     const { error: updateError } = await supabase
