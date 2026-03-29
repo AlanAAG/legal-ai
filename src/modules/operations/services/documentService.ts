@@ -111,7 +111,7 @@ export const documentService = {
     const { error } = await supabase
       .from('document_slots')
       .update({
-        analisis_status: 'procesando'
+        analysis_status: 'analyzing'
       })
       .eq('id', slotId);
 

@@ -14,8 +14,8 @@ export type DocumentCategory =
   | 'vendedorFisica' 
   | 'vendedorMoral';
 
-export type DocumentState = 'pending' | 'uploaded' | 'validated' | 'rejected' | 'alert' | 'analyzed';
-export type AnalysisStatus = 'pending' | 'processing' | 'analyzed' | 'error';
+export type DocumentState = 'pending' | 'uploaded' | 'validated' | 'rejected' | 'flagged' | 'analyzed';
+export type AnalysisStatus = 'pending' | 'analyzing' | 'analyzed' | 'error';
 export type Severity = 'high' | 'medium' | 'low';
 
 export interface RedFlag {

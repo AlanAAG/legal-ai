@@ -171,7 +171,7 @@ interface RowProps {
 }
 
 const SellerDocumentRow: React.FC<RowProps> = ({ doc, state, onUpload }) => {
-  const isUploaded = doc.status === 'uploaded' || doc.status === 'validated' || doc.status === 'alert' || state.success;
+  const isUploaded = doc.status === 'uploaded' || doc.status === 'validated' || doc.status === 'flagged' || state.success;
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   return (

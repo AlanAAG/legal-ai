@@ -14,7 +14,7 @@ export const OperationSummary: React.FC<Props> = ({ operation, onViewDocuments }
   const vendedor = operation.vendedor;
 
   // Aggregate Red Flags
-  const totalAlerts = operation.documentos.filter(d => d.status === 'alert' || d.status === 'analyzed').length;
+  const totalAlerts = operation.documentos.filter(d => d.status === 'flagged' || d.status === 'analyzed').length;
   // Note: We don't distinguish counts for summary here without extra queries, 
   // but we show the overall alert status.
   const hasBloqueantes = totalAlerts > 0; 

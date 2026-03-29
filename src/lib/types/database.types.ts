@@ -39,10 +39,10 @@ export interface DbDocumentSlot {
   is_required: boolean;
   condition_trigger?: string;
   person_type_trigger?: 'fisica' | 'moral';
-  status: 'pending' | 'uploaded' | 'validated' | 'rejected' | 'alert' | 'analyzed';
+  status: 'pending' | 'uploaded' | 'validated' | 'rejected' | 'flagged' | 'analyzed';
   file_name?: string;
   storage_path?: string;
-  analysis_status?: 'pending' | 'processing' | 'analyzed';
+  analysis_status?: 'pending' | 'analyzing' | 'analyzed';
   uploaded_at?: string;
 }
 

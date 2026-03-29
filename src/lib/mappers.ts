@@ -12,23 +12,17 @@ export const mapDbAgentToAgent = (dbAgent: DbAgent): Agent => ({
 
 export const mapDbDocumentSlotToDocumentSlot = (dbDoc: DbDocumentSlot): DocumentSlot => ({
   id: dbDoc.id,
-  nombre: dbDoc.name,
-  descripcion: dbDoc.description,
-  categoria: dbDoc.category as DocumentCategory,
-  esObligatorio: dbDoc.is_required,
+  name: dbDoc.name,
+  description: dbDoc.description,
+  category: dbDoc.category as DocumentCategory,
+  is_required: dbDoc.is_required,
   soloPersona: dbDoc.person_type_trigger,
   condicion: dbDoc.condition_trigger as any,
-  estado: dbDoc.status as any,
-  archivoNombre: dbDoc.file_name,
+  status: dbDoc.status as any,
+  file_name: dbDoc.file_name,
   storagePath: dbDoc.storage_path,
-  analisisStatus: (dbDoc as any).analisis_status || 'pendiente',
-  redFlags: dbDoc.red_flags ? (dbDoc.red_flags as any[]).map(f => ({
-    ruleId: f.rule_id,
-    severidad: f.severidad,
-    mensaje: f.mensaje,
-    detectedAt: f.detected_at
-  })) : undefined,
-  fechaSubida: dbDoc.uploaded_at ? new Date(dbDoc.uploaded_at).toLocaleDateString('es-MX') : undefined
+  analysis_status: dbDoc.analysis_status as any,
+  uploaded_at: dbDoc.uploaded_at ? new Date(dbDoc.uploaded_at).toLocaleDateString('es-MX') : undefined
 });
 
 export const mapDbOperationToOperation = (

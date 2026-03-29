@@ -15,10 +15,10 @@ serve(async (req) => {
 
     const { slotId, operationId, storagePath } = await req.json()
 
-    // 1. Set status to processing
+    // 1. Set status to analyzing
     await supabase
       .from('document_slots')
-      .update({ analisis_status: 'procesando' })
+      .update({ analysis_status: 'analyzing' })
       .eq('id', slotId)
 
     // 2. Fetch slot context
@@ -72,7 +72,7 @@ serve(async (req) => {
         .from('document_slots')
         .update({
           analysis_status: 'analyzed',
-          status: 'con_alerta'
+          status: 'flagged'
         })
         .eq('id', slotId)
 
@@ -189,13 +189,13 @@ serve(async (req) => {
     }
 
     const hasBloqueante = flags.some(f => f.severity === 'bloqueante')
-    const finalStatus = (flags.length > 0 && slot.is_required) ? 'con_alerta' : 'uploaded'
+    const finalStatus = (flags.length > 0 && slot.is_required) ? 'flagged' : 'uploaded'
 
     const { error: updateError } = await supabase
       .from('document_slots')
       .update({
         analysis_status: 'analyzed',
-        status: flags.length > 0 ? (hasBloqueante ? 'con_alerta' : 'uploaded') : 'uploaded'
+        status: flags.length > 0 ? (hasBloqueante ? 'flagged' : 'uploaded') : 'uploaded'
       })
       .eq('id', slotId)
 

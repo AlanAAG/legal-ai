@@ -55,9 +55,9 @@ export const OperationDocuments: React.FC<Props> = ({ operation, onRefresh }) =>
 
   // Stats
   const totalRelevant = filteredDocs.length;
-  const totalUploaded = filteredDocs.filter((d: DocumentSlot) => d.status === 'uploaded' || d.status === 'validated' || d.status === 'alert' || d.status === 'analyzed').length;
+  const totalUploaded = filteredDocs.filter((d: DocumentSlot) => d.status === 'uploaded' || d.status === 'validated' || d.status === 'flagged' || d.status === 'analyzed').length;
   const remaining = totalRelevant - totalUploaded;
-  const totalAlerts = filteredDocs.filter((d: DocumentSlot) => d.status === 'alert' || d.status === 'analyzed').length;
+  const totalAlerts = filteredDocs.filter((d: DocumentSlot) => d.status === 'flagged' || d.status === 'analyzed').length;
 
   const handleUpload = async (docId: string, file: File) => {
     const maxSize = 20 * 1024 * 1024;
@@ -189,8 +189,8 @@ interface RowProps {
 }
 
 const DocumentRow: React.FC<RowProps> = ({ doc, state, onUpload, onView, onRefresh, onLoadingEnd }) => {
-  const isUploaded = doc.status === 'uploaded' || doc.status === 'validated' || doc.status === 'alert' || doc.status === 'analyzed';
-  const isAnalizando = state.loading || doc.analysis_status === 'processing';
+  const isUploaded = doc.status === 'uploaded' || doc.status === 'validated' || doc.status === 'flagged' || doc.status === 'analyzed';
+  const isAnalizando = state.loading || doc.analysis_status === 'analyzing';
   const isAnalyzed = doc.analysis_status === 'analyzed';
   
   const [flags, setFlags] = useState<RedFlag[]>([]);
@@ -198,7 +198,7 @@ const DocumentRow: React.FC<RowProps> = ({ doc, state, onUpload, onView, onRefre
   const [showFlags, setShowFlags] = useState(false);
 
   useEffect(() => {
-    if (isAnalyzed && (doc.status === 'alert' || doc.status === 'analyzed')) {
+    if (isAnalyzed && (doc.status === 'flagged' || doc.status === 'analyzed')) {
       const fetchFlags = async () => {
         setFetchingFlags(true);
         try {
@@ -216,7 +216,7 @@ const DocumentRow: React.FC<RowProps> = ({ doc, state, onUpload, onView, onRefre
     }
   }, [isAnalyzed, doc.status, doc.id]);
 
-  const hasAlert = flags.length > 0 || doc.status === 'alert';
+  const hasAlert = flags.length > 0 || doc.status === 'flagged';
 
   // Use Realtime Hook
   useRealtimeSlot(
