@@ -1,9 +1,10 @@
-import React, { useState, useMemo, useRef } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import type { Operation, DocumentSlot, DocumentCategory } from '../../../types';
 import { FileText, Upload, CheckCircle2, Loader2, ExternalLink, AlertCircle, AlertTriangle } from 'lucide-react';
 import { documentService } from '../services/documentService';
 import { analysisService } from '../services/analysisService';
 import { useRealtimeSlot } from '../../../hooks/useRealtimeSlot';
+import { toast } from 'sonner';
 
 interface Props {
   operation: Operation;
@@ -54,9 +55,9 @@ export const OperationDocuments: React.FC<Props> = ({ operation, onRefresh }) =>
 
   // Stats
   const totalRelevant = filteredDocs.length;
-  const totalUploaded = filteredDocs.filter((d: DocumentSlot) => d.estado === 'subido' || d.estado === 'validado' || d.estado === 'con_alerta').length;
+  const totalUploaded = filteredDocs.filter((d: DocumentSlot) => d.estado === 'subido' || d.estado === 'validado' || d.estado === 'con_alerta' || d.estado === 'analyzed').length;
   const remaining = totalRelevant - totalUploaded;
-  const totalAlerts = filteredDocs.filter((d: DocumentSlot) => d.estado === 'con_alerta').length;
+  const totalAlerts = filteredDocs.filter((d: DocumentSlot) => d.estado === 'con_alerta' || d.estado === 'analyzed').length;
 
   const handleUpload = async (docId: string, file: File) => {
     const maxSize = 20 * 1024 * 1024;
@@ -72,17 +73,21 @@ export const OperationDocuments: React.FC<Props> = ({ operation, onRefresh }) =>
       return;
     }
 
-    try {
-      setRowStates(prev => ({ ...prev, [docId]: { loading: true, error: null } }));
-      const result = await documentService.uploadDocument(operation.id, docId, file);
-      
-      // Analysis is triggered here, completion will be caught by useRealtimeSlot in DocumentRow
-      await analysisService.triggerAnalysis(docId, operation.id, result.storagePath);
-      
-    } catch (err) {
-      console.error('Error uploading/analyzing document:', err);
-      setRowStates(prev => ({ ...prev, [docId]: { loading: false, error: 'Error al procesar. Intenta de nuevo.' } }));
-    }
+    toast.promise(
+      (async () => {
+        setRowStates(prev => ({ ...prev, [docId]: { loading: true, error: null } }));
+        const result = await documentService.uploadDocument(operation.id, docId, file);
+        await analysisService.triggerAnalysis(docId, operation.id, result.storagePath);
+      })(),
+      {
+        loading: 'Subiendo y analizando documento...',
+        success: '¡Documento recibido! Iniciando auditoría legal...',
+        error: (err) => {
+          setRowStates(prev => ({ ...prev, [docId]: { loading: false, error: err.message || 'Error al procesar' } }));
+          return err.message || 'Error al procesar';
+        }
+      }
+    );
   };
 
   const handleViewDocument = async (storagePath: string) => {
@@ -184,9 +189,32 @@ interface RowProps {
 }
 
 const DocumentRow: React.FC<RowProps> = ({ doc, state, onUpload, onView, onRefresh, onLoadingEnd }) => {
-  const isUploaded = doc.estado === 'subido' || doc.estado === 'validado' || doc.estado === 'con_alerta';
-  const hasAlert = doc.estado === 'con_alerta' || (doc.redFlags && doc.redFlags.length > 0);
+  const isUploaded = doc.estado === 'subido' || doc.estado === 'validado' || doc.estado === 'con_alerta' || doc.estado === 'analyzed';
   const isAnalizando = state.loading || doc.analisisStatus === 'procesando';
+  const isCompletado = doc.analisisStatus === 'completado';
+  
+  const [flags, setFlags] = useState<any[]>([]);
+  const [fetchingFlags, setFetchingFlags] = useState(false);
+  const [showFlags, setShowFlags] = useState(false);
+
+  useEffect(() => {
+    if (isCompletado && (doc.estado === 'con_alerta' || doc.estado === 'analyzed')) {
+      const fetchFlags = async () => {
+        setFetchingFlags(true);
+        try {
+          const data = await documentService.getDetectedFlags(doc.id);
+          setFlags(data);
+        } catch (err) {
+          console.error('Error fetching flags:', err);
+        } finally {
+          setFetchingFlags(false);
+        }
+      };
+      fetchFlags();
+    }
+  }, [isCompletado, doc.estado, doc.id]);
+
+  const hasAlert = flags.length > 0 || (doc.redFlags && doc.redFlags.length > 0) || doc.estado === 'con_alerta';
 
   // Use Realtime Hook
   useRealtimeSlot(
@@ -197,17 +225,18 @@ const DocumentRow: React.FC<RowProps> = ({ doc, state, onUpload, onView, onRefre
     }, 
     isAnalizando
   );
-  const isCompletado = doc.analisisStatus === 'completado';
+  
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [showFlags, setShowFlags] = useState(false);
 
   // Determine border color based on highest severity
   const maxSeverity = useMemo(() => {
-    if (!doc.redFlags || doc.redFlags.length === 0) return null;
-    if (doc.redFlags.some(f => f.severidad === 'bloqueante')) return 'bloqueante';
-    if (doc.redFlags.some(f => f.severidad === 'advertencia')) return 'advertencia';
+    // Priority to fetched flags, fallback to doc.redFlags
+    const currentFlags = flags.length > 0 ? flags : (doc.redFlags || []);
+    if (currentFlags.length === 0) return null;
+    if (currentFlags.some(f => f.severidad === 'bloqueante')) return 'bloqueante';
+    if (currentFlags.some(f => f.severidad === 'advertencia')) return 'advertencia';
     return 'info';
-  }, [doc.redFlags]);
+  }, [flags, doc.redFlags]);
 
   const borderClass = useMemo(() => {
     if (!isUploaded || !hasAlert || !isCompletado) return 'border-slate-200';
@@ -266,20 +295,21 @@ const DocumentRow: React.FC<RowProps> = ({ doc, state, onUpload, onView, onRefre
           )}
 
           {/* Red Flags Action */}
-          {hasAlert && isCompletado && doc.redFlags && (
+          {hasAlert && isCompletado && (
             <button 
               onClick={() => setShowFlags(!showFlags)}
+              disabled={fetchingFlags}
               className="mt-3 flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider text-slate-400 hover:text-slate-600 transition-colors"
             >
-              {showFlags ? 'Ocultar alertas' : `Ver ${doc.redFlags.length} alertas detectadas`}
-              <ChevronDownIcon className={`w-3.5 h-3.5 transition-transform ${showFlags ? 'rotate-180' : ''}`} />
+              {fetchingFlags ? 'Cargando alertas...' : (showFlags ? 'Ocultar alertas' : `Ver ${flags.length} alertas detectadas`)}
+              {!fetchingFlags && <ChevronDownIcon className={`w-3.5 h-3.5 transition-transform ${showFlags ? 'rotate-180' : ''}`} />}
             </button>
           )}
 
           {/* Collapsible Flag List */}
-          {hasAlert && isCompletado && showFlags && doc.redFlags && (
+          {hasAlert && isCompletado && showFlags && !fetchingFlags && (
             <div className="mt-4 space-y-2 animate-in fade-in slide-in-from-top-2 duration-300">
-              {doc.redFlags.map((flag, idx) => (
+              {flags.map((flag, idx) => (
                 <div 
                   key={idx} 
                   className={`flex items-start gap-3 p-3 rounded-xl border ${

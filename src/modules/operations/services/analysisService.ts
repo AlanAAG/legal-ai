@@ -10,6 +10,53 @@ export const analysisService = {
     operationId: string, 
     storagePath: string
   ): Promise<void> {
+    const fileName = storagePath.split('/').pop() || '';
+    
+    // MOCK MODE: Demo-Proof Wizard of Oz
+    if (fileName.toLowerCase().includes('demo_donacion')) {
+      console.log('--- WIZARD OF OZ MODE ACTIVATED (PERSISTENT & RELATIONAL) ---');
+      
+      // 1. Simulate network delay
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      const mockFlags = [
+        {
+          type: 'bloqueante',
+          title: "🛑 Régimen de Sociedad Conyugal",
+          description: "Se detectó régimen mancomunado. Es obligatoria la firma e INE del cónyuge para proceder.",
+          severity: 'bloqueante'
+        },
+        {
+          type: 'bloqueante',
+          title: "⚠️ Adquisición por Donación",
+          description: "La propiedad fue adquirida por donación. No es apta para la mayoría de los créditos hipotecarios bancarios.",
+          severity: 'bloqueante'
+        }
+      ];
+
+      // 2. Persist mock results into the NEW relational table (detected_red_flags)
+      for (const alerta of mockFlags) {
+        await supabase.from('detected_red_flags').insert({ 
+          document_slot_id: slotId, 
+          type: alerta.type, 
+          title: alerta.title, 
+          description: alerta.description, 
+          severity: alerta.severity 
+        });
+      }
+
+      // 3. Update the document slot status to 'analyzed'
+      await supabase
+        .from('document_slots')
+        .update({
+          analisis_status: 'completado',
+          status: 'analyzed'
+        })
+        .eq('id', slotId);
+        
+      return;
+    }
+
     const { error } = await supabase.functions.invoke('analyze-document', {
       body: { slotId, operationId, storagePath }
     });

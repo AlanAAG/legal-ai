@@ -109,3 +109,70 @@ CREATE POLICY "Demo Allow All Document Slots"
 ON public.document_slots FOR ALL 
 USING (auth.role() = 'authenticated') 
 WITH CHECK (auth.role() = 'authenticated');
+
+-- ==========================================
+-- AUTOMATED PROFILE CREATION: auth.users -> public.agents
+-- ==========================================
+-- This ensures that as soon as a user signs up, they have an agent record ready.
+
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS trigger AS $$
+BEGIN
+  INSERT INTO public.agents (id, email, nombre)
+  VALUES (
+    new.id, 
+    new.email, 
+    COALESCE(new.raw_user_meta_data->>'full_name', split_part(new.email, '@', 1))
+  );
+  RETURN new;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Trigger to run the function on user creation
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+
+-- ==========================================
+-- RELATIONAL RED FLAGS: detected_red_flags
+-- ==========================================
+-- This table replaces the JSONB column for better indexing and relational queries during the demo.
+
+CREATE TABLE IF NOT EXISTS public.detected_red_flags (
+  id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+  document_slot_id uuid REFERENCES public.document_slots(id) ON DELETE CASCADE,
+  type text NOT NULL,
+  title text NOT NULL,
+  description text NOT NULL,
+  severity text NOT NULL,
+  created_at timestamp with time zone DEFAULT now()
+);
+
+-- Enable RLS for the new table
+ALTER TABLE public.detected_red_flags ENABLE ROW LEVEL SECURITY;
+
+-- Allow Authenticated Agents to view flags for their operations' slots
+DROP POLICY IF EXISTS "Agents can view flags for their operation slots" ON public.detected_red_flags;
+CREATE POLICY "Agents can view flags for their operation slots"
+ON public.detected_red_flags FOR SELECT
+TO authenticated
+USING (
+  EXISTS (
+    SELECT 1 FROM public.document_slots 
+    JOIN public.operations ON public.operations.id = public.document_slots.operation_id
+    WHERE public.document_slots.id = public.detected_red_flags.document_slot_id
+    AND public.operations.agent_id = auth.uid()
+  )
+);
+
+-- Emergency Demo Bypass for insertions
+DROP POLICY IF EXISTS "Demo Allow All Flags" ON public.detected_red_flags;
+CREATE POLICY "Demo Allow All Flags"
+ON public.detected_red_flags FOR ALL
+TO authenticated, anon
+USING (true)
+WITH CHECK (true);
+
+-- Enable Realtime for the new table
+ALTER PUBLICATION supabase_realtime ADD TABLE public.detected_red_flags;

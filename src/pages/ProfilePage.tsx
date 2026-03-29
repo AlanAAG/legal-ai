@@ -3,13 +3,12 @@ import { useAuth } from '../context/AuthContext';
 import { agentService } from '../modules/operations/services/agentService';
 import { User, Phone, Building, Star, Save, Loader2, ShieldCheck } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { toast } from 'sonner';
 
 const ProfilePage: React.FC = () => {
   const { agent, user, loading: authLoading, signOut, refreshAgent } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [success, setSuccess] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
     nombre: '',
@@ -34,21 +33,19 @@ const ProfilePage: React.FC = () => {
     if (!user) return;
 
     setIsLoading(true);
-    setError(null);
-    setSuccess(false);
 
-    try {
-      await agentService.updateProfile(user.id, formData);
-      // Refresh the AuthContext so Navbar updates immediately
-      await refreshAgent();
-      setSuccess(true);
-      setIsEditing(false);
-      setTimeout(() => setSuccess(false), 3000);
-    } catch (err: any) {
-      setError(err.message || 'Error al actualizar el perfil');
-    } finally {
-      setIsLoading(false);
-    }
+    toast.promise(Promise.all([
+      agentService.updateProfile(user.id, formData),
+      refreshAgent()
+    ]), {
+      loading: 'Actualizando perfil...',
+      success: () => {
+        setIsEditing(false);
+        return '¡Perfil actualizado!';
+      },
+      error: (err) => err.message || 'Error al actualizar',
+      finally: () => setIsLoading(false)
+    });
   };
 
   if (authLoading) {
@@ -280,26 +277,6 @@ const ProfilePage: React.FC = () => {
                       </motion.div>
                     )}
                   </AnimatePresence>
-
-                  {success && (
-                    <motion.div
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      className="p-4 bg-green-50 text-green-600 rounded-2xl text-xs font-bold text-center border border-green-100"
-                    >
-                      ¡Perfil actualizado correctamente!
-                    </motion.div>
-                  )}
-
-                  {error && (
-                    <motion.div
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      className="p-4 bg-red-50 text-red-600 rounded-2xl text-xs font-bold text-center border border-red-100"
-                    >
-                      {error}
-                    </motion.div>
-                  )}
                 </form>
               </div>
             </div>

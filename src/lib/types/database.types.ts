@@ -39,7 +39,7 @@ export interface DbDocumentSlot {
   is_required: boolean;
   condition_trigger?: string;
   person_type_trigger?: 'fisica' | 'moral';
-  status: 'pendiente' | 'subido' | 'validado' | 'rechazado' | 'con_alerta';
+  status: 'pendiente' | 'subido' | 'validado' | 'rechazado' | 'con_alerta' | 'analyzed';
   file_name?: string;
   storage_path?: string;
   analisis_status?: 'pendiente' | 'procesando' | 'completado';

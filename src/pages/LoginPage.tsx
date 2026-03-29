@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Layout, Mail, Lock, AlertCircle, Loader2, User } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { toast } from 'sonner';
 
 const LoginPage: React.FC = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -30,43 +31,33 @@ const LoginPage: React.FC = () => {
 
     try {
       if (isLogin) {
-        const { error: signInError } = await signIn(email, password);
-        if (signInError) {
-          setError('Credenciales incorrectas. Por favor, intente de nuevo.');
-        }
-        // Navigation handled by the useEffect above when `user` changes
+        toast.promise(signIn(email, password), {
+          loading: 'Iniciando sesión...',
+          success: '¡Bienvenido!',
+          error: (err) => err.message || 'Credenciales incorrectas'
+        });
       } else {
-        const { error: signUpError, user: newUser } = await signUp(email, password, fullName);
-        if (signUpError) {
-          setError(signUpError.message);
-        } else if (newUser?.confirmed_at || newUser?.email_confirmed_at) {
-          // Email confirmation is DISABLED — user is already confirmed
-          // The onAuthStateChange listener will pick this up and redirect via useEffect
-        } else {
-          // Email confirmation is ENABLED — show "check your email" screen
-          setIsSignedUp(true);
-        }
+        toast.promise(signUp(email, password, fullName), {
+          loading: 'Creando cuenta...',
+          success: (res: any) => res.user?.confirmed_at ? '¡Cuenta lista!' : 'Revisa tu correo para confirmar.',
+          error: (err) => err.message || 'Error al registrarse'
+        });
       }
     } catch (err) {
-      setError('Ocurrió un error inesperado. Intente más tarde.');
+      console.error(err);
     } finally {
       setIsSubmitting(false);
     }
   };
 
   const handleDemoLogin = async () => {
-    setError(null);
     setIsSubmitting(true);
-    try {
-      const { error: signInError } = await signIn('demo@aiabogado.com', 'demo1234');
-      if (signInError) {
-        setError('Error en Demo Login: ' + signInError.message);
-      }
-    } catch (err) {
-      setError('Ocurrió un error inesperado. Intente más tarde.');
-    } finally {
-      setIsSubmitting(false);
-    }
+    toast.promise(signIn('demo@aiabogado.com', 'demo1234'), {
+      loading: 'Activando acceso demo...',
+      success: 'Acceso demo concedido.',
+      error: 'Error en acceso demo'
+    });
+    setIsSubmitting(false);
   };
 
   // Clear errors when toggling between modes

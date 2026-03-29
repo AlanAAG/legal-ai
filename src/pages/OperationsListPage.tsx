@@ -18,6 +18,7 @@ import {
   RefreshCcw
 } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { toast } from 'sonner';
 import CreateOperationModal from '../modules/operations/components/CreateOperationModal';
 
 const OperationsListPage: React.FC = () => {
@@ -48,36 +49,30 @@ const OperationsListPage: React.FC = () => {
   };
 
   const handleCreateOperation = async (data: CreateOperationInput) => {
-    if (!user) return;
-    if (!agent) {
-      alert('Error: No se encontró su perfil de agente. Por favor, asegúrese de haber confirmado su correo electrónico y recargue la página.');
-      return;
-    }
+    if (!user || !agent) return;
     setIsSubmitting(true);
-    try {
-      // Create with real agent data
-      const mappedAgent = {
-        id: user.id,
-        nombre: agent.nombre,
-        email: agent.email,
-        telefono: agent.telefono,
-        agencia: agent.agencia,
-        esAMPI: agent.esAMPI
-      };
+    
+    const mappedAgent = {
+      id: user.id,
+      nombre: agent.nombre,
+      email: agent.email,
+      telefono: agent.telefono,
+      agencia: agent.agencia,
+      esAMPI: agent.esAMPI
+    };
 
-      const newOp = await operationService.createOperation(data, mappedAgent);
-      navigate(`/operaciones/${newOp.id}`);
-    } catch (err) {
-      console.error('Error creating operation:', err);
-      if (!agent) {
-        alert('No se encontró el perfil de agente. Por favor, asegúrese de haber confirmado su correo o intente recargar la página.');
-      } else {
-        alert('Error al crear la operación. Intente de nuevo.');
+    toast.promise(operationService.createOperation(data, mappedAgent), {
+      loading: 'Generando expediente...',
+      success: (newOp) => {
+        navigate(`/operaciones/${newOp.id}`);
+        return '¡Operación creada exitosamente!';
+      },
+      error: 'Error al crear la operación',
+      finally: () => {
+        setIsSubmitting(false);
+        setIsModalOpen(false);
       }
-    } finally {
-      setIsSubmitting(false);
-      setIsModalOpen(false);
-    }
+    });
   };
 
   if (authLoading || (loading && user)) {

@@ -116,5 +116,43 @@ export const documentService = {
       .eq('id', slotId);
 
     if (error) throw error;
+  },
+
+  /**
+   * Uploads a document via Seller Portal (Edge Function bypass)
+   */
+  async uploadSellerDocument(operationId: string, slotId: string, file: File): Promise<any> {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('slotId', slotId);
+    formData.append('operationId', operationId);
+
+    const { data, error } = await supabase.functions.invoke('seller-upload', {
+      body: formData,
+    });
+
+    if (error) throw error;
+    return data;
+  },
+
+  /**
+   * Fetches detected red flags for a specific slot from the relational table
+   */
+  async getDetectedFlags(slotId: string): Promise<any[]> {
+    const { data, error } = await supabase
+      .from('detected_red_flags')
+      .select('*')
+      .eq('document_slot_id', slotId)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    
+    // Map to frontend format
+    return data.map(f => ({
+      ruleId: f.id,
+      severidad: f.severity,
+      mensaje: f.title + ': ' + f.description,
+      detectedAt: f.created_at
+    }));
   }
 };

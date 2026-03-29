@@ -36,29 +36,23 @@ export const sellerService = {
    * Uploads a document via public anonymous access
    */
   async uploadPublicDocument(shareToken: string, slotId: string, file: File): Promise<void> {
-    console.log(`Public upload initiated for token: ${shareToken.substring(0, 5)}...`);
-    const fileExt = file.name.split('.').pop();
-    const fileName = `${Math.random()}.${fileExt}`;
-    const filePath = `public/${slotId}/${fileName}`;
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('slotId', slotId);
+    formData.append('shareToken', shareToken);
 
-    // 1. Upload to Storage (bucket 'documentos' allows anon insert)
-    const { error: storageError } = await supabase.storage
-      .from('documentos')
-      .upload(filePath, file);
+    const { data: { publicUrl } } = supabase.storage.from('documentos').getPublicUrl('dummy');
+    const baseUrl = publicUrl.split('/storage/v1')[0];
+    const functionUrl = `${baseUrl}/functions/v1/seller-upload`;
 
-    if (storageError) throw storageError;
+    const response = await fetch(functionUrl, {
+      method: 'POST',
+      body: formData,
+    });
 
-    // 2. Update Document Slot (RLS allows update where true)
-    const { error: dbError } = await supabase
-      .from('document_slots')
-      .update({
-        storage_path: filePath,
-        file_name: file.name,
-        status: 'subido',
-        uploaded_at: new Date().toISOString()
-      })
-      .eq('id', slotId);
-
-    if (dbError) throw dbError;
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Error al subir el documento');
+    }
   }
 };

@@ -13,6 +13,7 @@ interface AuthContextType {
   signUp: (email: string, password: string, fullName: string) => Promise<{ error: any; user: User | null }>;
   signOut: () => Promise<void>;
   refreshAgent: () => Promise<void>;
+  isInitialized: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -21,6 +22,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null);
   const [agent, setAgent] = useState<Agent | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isInitialized, setIsInitialized] = useState(false);
 
   /**
    * Fetch the agent profile for a given user ID.
@@ -87,7 +89,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         console.warn('[AuthContext] Init failed:', err);
       } finally {
         clearTimeout(timeoutId);
-        if (isMounted) setLoading(false);
+        if (isMounted) {
+          setLoading(false);
+          setIsInitialized(true);
+        }
       }
     };
 
@@ -142,7 +147,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   return (
-    <AuthContext.Provider value={{ user, agent, loading, signIn, signUp, signOut, refreshAgent }}>
+    <AuthContext.Provider value={{ user, agent, loading, signIn, signUp, signOut, refreshAgent, isInitialized }}>
       {children}
     </AuthContext.Provider>
   );

@@ -14,7 +14,7 @@ export type DocumentCategory =
   | 'vendedorFisica' 
   | 'vendedorMoral';
 
-export type DocumentState = 'pendiente' | 'subido' | 'validado' | 'rechazado' | 'con_alerta';
+export type DocumentState = 'pendiente' | 'subido' | 'validado' | 'rechazado' | 'con_alerta' | 'analyzed';
 export type AnalysisStatus = 'pendiente' | 'procesando' | 'completado' | 'error';
 export type Severity = 'bloqueante' | 'advertencia' | 'info';
 
