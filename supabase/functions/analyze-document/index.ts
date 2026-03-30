@@ -87,6 +87,7 @@ serve(async (req) => {
     }
 
     // 5. Extract Text (Basic simulation using TextDecoder for simplicity in this deterministic version)
+    // TODO (Fase 2): Reemplazar TextDecoder con integración a Google Document AI / OCR API para parseo real de PDFs.
     // In a real production environment, we would use a more robust PDF parser or OCR
     const contentText = new TextDecoder().decode(await fileData.arrayBuffer())
     const flags = []
@@ -116,7 +117,7 @@ serve(async (req) => {
                 type: 'expiry_fiscal_3m',
                 title: "Fecha no detectada",
                 description: "No se detectó una fecha de emisión clara. El documento puede estar vencido.",
-                severity: 'bloqueante'
+                severity: 'critical'
             })
         }
     }
@@ -160,7 +161,7 @@ serve(async (req) => {
                 type: 'keyword_lien',
                 title: "Gravamen Detectado",
                 description: "Se detectó lenguaje de gravamen o embargo. Revisión urgente requerida.",
-                severity: 'bloqueante'
+                severity: 'critical'
             })
         }
     }
