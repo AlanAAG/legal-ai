@@ -52,12 +52,24 @@ const LoginPage: React.FC = () => {
 
   const handleDemoLogin = async () => {
     setIsSubmitting(true);
-    toast.promise(signIn('demo@aiabogado.com', 'demo1234'), {
-      loading: 'Activando acceso demo...',
-      success: 'Acceso demo concedido.',
-      error: 'Error en acceso demo'
-    });
-    setIsSubmitting(false);
+    try {
+      await toast.promise(
+        (async () => {
+          try {
+            await signIn('demo@aiabogado.com', 'demo1234');
+          } catch (error) {
+            await signUp('demo@aiabogado.com', 'demo1234', 'Usuario Demo');
+          }
+        })(),
+        {
+          loading: 'Iniciando modo demo...',
+          success: 'Acceso demo concedido.',
+          error: 'Error en acceso demo'
+        }
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   // Clear errors when toggling between modes
