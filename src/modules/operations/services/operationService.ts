@@ -58,20 +58,17 @@ export const operationService = {
       address: `${op.property_street} ${op.property_number}`,
       sellerName: op.seller_name,
       totalDocs: op.document_slots.length,
-      uploadedDocs: op.document_slots.filter((s: any) => s.status === 'subido' || s.status === 'validado' || s.status === 'con_alerta').length,
-      bloqueanteCount: op.document_slots.filter((s: any) => s.status === 'con_alerta').length,
+      uploadedDocs: op.document_slots.filter((s: any) => ['uploaded', 'validated', 'flagged', 'analyzed'].includes(s.status)).length,
+      bloqueanteCount: op.document_slots.filter((s: any) => s.status === 'flagged').length,
       createdAt: op.created_at
     }));
   },
 
   async getOperation(operationId: string): Promise<Operation | null> {
-    // Fetch operation, tracks agent and document slots
+    // Fetch operation detail
     const { data: opData, error: opError } = await supabase
       .from('operations')
-      .select(`
-        *,
-        agents (*)
-      `)
+      .select('*')
       .eq('id', operationId)
       .single();
 
@@ -80,6 +77,16 @@ export const operationService = {
       throw opError;
     }
 
+    // Fetch associated agent (Separate fetch to bypass join issues)
+    const { data: agentData, error: agentError } = await supabase
+      .from('agents')
+      .select('*')
+      .eq('user_id', opData.agent_id)
+      .single();
+    
+    if (agentError) throw agentError;
+
+    // Fetch document slots
     const { data: docsData, error: docsError } = await supabase
       .from('document_slots')
       .select('*')
@@ -87,7 +94,7 @@ export const operationService = {
 
     if (docsError) throw docsError;
 
-    const agent: Agent = mapDbAgentToAgent(opData.agents);
+    const agent: Agent = mapDbAgentToAgent(agentData);
     return mapDbOperationToOperation(opData as DbOperation, agent, docsData as DbDocumentSlot[]);
   },
 
@@ -133,13 +140,13 @@ export const operationService = {
 
     const slotsToInsert = applicableSlots.map(slot => ({
       operation_id: dbOp.id,
-      name: slot.nombre,
-      description: slot.descripcion,
-      category: slot.categoria,
-      is_required: slot.esObligatorio,
+      name: slot.name,
+      description: slot.description,
+      category: slot.category,
+      is_required: slot.is_required,
       condition_trigger: slot.condicion,
       person_type_trigger: slot.soloPersona,
-      status: 'pendiente'
+      status: 'pending'
     }));
 
     const { data: dbDocs, error: docsError } = await supabase
@@ -155,10 +162,7 @@ export const operationService = {
   async getOperationByToken(token: string): Promise<Operation | null> {
     const { data: opData, error: opError } = await supabase
       .from('operations')
-      .select(`
-        *,
-        agents (*)
-      `)
+      .select('*')
       .eq('share_token', token)
       .single();
 
@@ -167,6 +171,15 @@ export const operationService = {
       throw opError;
     }
 
+    // Fetch associated agent (Separate fetch to bypass join issues)
+    const { data: agentData, error: agentError } = await supabase
+      .from('agents')
+      .select('*')
+      .eq('user_id', opData.agent_id)
+      .single();
+    
+    if (agentError) throw agentError;
+
     const { data: docsData, error: docsError } = await supabase
       .from('document_slots')
       .select('*')
@@ -174,7 +187,7 @@ export const operationService = {
 
     if (docsError) throw docsError;
 
-    const agent: Agent = mapDbAgentToAgent(opData.agents);
+    const agent: Agent = mapDbAgentToAgent(agentData);
     return mapDbOperationToOperation(opData as DbOperation, agent, docsData as DbDocumentSlot[]);
   }
 };
