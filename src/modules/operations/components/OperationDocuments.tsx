@@ -192,13 +192,14 @@ const DocumentRow: React.FC<RowProps> = ({ doc, state, onUpload, onView, onRefre
   const isUploaded = doc.status === 'uploaded' || doc.status === 'validated' || doc.status === 'flagged' || doc.status === 'analyzed';
   const isAnalizando = state.loading || doc.analysis_status === 'analyzing';
   const isAnalyzed = doc.analysis_status === 'analyzed';
+  const hasError = doc.analysis_status === 'error';
   
   const [flags, setFlags] = useState<RedFlag[]>([]);
   const [fetchingFlags, setFetchingFlags] = useState(false);
   const [showFlags, setShowFlags] = useState(false);
 
   useEffect(() => {
-    if (isAnalyzed && (doc.status === 'flagged' || doc.status === 'analyzed')) {
+    if (isAnalyzed) {
       const fetchFlags = async () => {
         setFetchingFlags(true);
         try {
@@ -276,6 +277,12 @@ const DocumentRow: React.FC<RowProps> = ({ doc, state, onUpload, onView, onRefre
               <span className="flex items-center gap-1 text-[9px] font-bold text-green-600 bg-green-50 px-2 py-0.5 rounded-full border border-green-100">
                 <CheckCircle2 className="w-2.5 h-2.5" />
                 Sin alertas
+              </span>
+            )}
+            {hasError && (
+              <span className="flex items-center gap-1 text-[9px] font-bold text-red-600 bg-red-50 px-2 py-0.5 rounded-full border border-red-100">
+                <AlertCircle className="w-2.5 h-2.5" />
+                Error en análisis
               </span>
             )}
           </div>

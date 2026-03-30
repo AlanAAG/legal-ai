@@ -7,13 +7,25 @@ serve(async (req) => {
     return new Response('ok', { headers: corsHeaders })
   }
 
-  try {
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    )
+    let slotId: any = null
+    try {
+      const supabase = createClient(
+        Deno.env.get('SUPABASE_URL') ?? '',
+        Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+      )
 
-    const { slotId, operationId, storagePath } = await req.json()
+    let payload: any = {}
+    try {
+      payload = await req.json()
+    } catch (e) {
+      return new Response(JSON.stringify({ error: 'Invalid JSON' }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 400,
+      })
+    }
+
+    const { slotId: sId, operationId, storagePath } = payload
+    slotId = sId
 
     // 1. Set status to analyzing
     await supabase
@@ -189,14 +201,11 @@ serve(async (req) => {
       })
     }
 
-    const hasBloqueante = flags.some(f => f.severity === 'high' || f.severity === 'critical')
-    const finalStatus = (flags.length > 0 && slot.is_required) ? 'flagged' : 'uploaded'
-
     const { error: updateError } = await supabase
       .from('document_slots')
       .update({
         analysis_status: 'analyzed',
-        status: flags.length > 0 ? (hasBloqueante ? 'flagged' : 'uploaded') : 'uploaded'
+        status: flags.length > 0 ? 'flagged' : 'uploaded'
       })
       .eq('id', slotId)
 
@@ -211,8 +220,17 @@ serve(async (req) => {
       status: 200,
     })
 
-  } catch (error) {
-    return new Response(JSON.stringify({ error: error.message }), {
+  } catch (error: any) {
+    // Fail-Safe: Update status to error for the frontend
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    )
+    if (slotId) {
+      await supabase.from('document_slots').update({ analysis_status: 'error' }).eq('id', slotId)
+    }
+
+    return new Response(JSON.stringify({ error: error?.message || 'Unknown error' }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 500,
     })
