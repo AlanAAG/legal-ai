@@ -53,6 +53,18 @@ CREATE TABLE IF NOT EXISTS public.document_slots (
   uploaded_at timestamp with time zone,
   created_at timestamp with time zone DEFAULT now()
 );
+-- Master rules catalog: CLEAN START
+-- Drop legacy corrupted table (12 columns) and start fresh with official 6 columns
+DROP TABLE IF EXISTS public.red_flag_rules CASCADE;
+
+CREATE TABLE public.red_flag_rules (
+  id text PRIMARY KEY,
+  name text NOT NULL,
+  description text NOT NULL,
+  severity text NOT NULL CHECK (severity IN ('bloqueante', 'advertencia', 'info')),
+  is_active boolean DEFAULT true,
+  created_at timestamp with time zone DEFAULT now()
+);
 
 CREATE TABLE IF NOT EXISTS public.detected_red_flags (
   id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
@@ -68,7 +80,9 @@ CREATE TABLE IF NOT EXISTS public.detected_red_flags (
 -- FIX: Add defaults for existing tables
 -- (Safe to re-run — only modifies defaults)
 -- ==========================================
+-- Correcting share_token type and default
 ALTER TABLE public.operations 
+  ALTER COLUMN share_token TYPE text USING share_token::text,
   ALTER COLUMN share_token SET DEFAULT gen_random_uuid()::text;
 
 DO $$ BEGIN
@@ -81,6 +95,8 @@ EXCEPTION WHEN others THEN NULL;
 END $$;
 ALTER TABLE public.agents ALTER COLUMN telefono SET DEFAULT '';
 ALTER TABLE public.agents ALTER COLUMN agencia SET DEFAULT '';
+
+-- red_flag_rules is now handled by fresh DROP/CREATE above
 
 -- ==========================================
 -- 1. Storage Bucket
@@ -129,6 +145,7 @@ ALTER TABLE public.agents ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.operations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.document_slots ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.detected_red_flags ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.red_flag_rules ENABLE ROW LEVEL SECURITY;
 
 -- AGENTS
 DROP POLICY IF EXISTS "Agents can manage own profile" ON public.agents;
@@ -205,6 +222,13 @@ ON public.detected_red_flags FOR INSERT
 TO authenticated, anon
 WITH CHECK (true);
 
+-- RED FLAG RULES
+DROP POLICY IF EXISTS "Public can view red flag rules" ON public.red_flag_rules;
+CREATE POLICY "Public can view red flag rules"
+ON public.red_flag_rules FOR SELECT
+TO authenticated, anon
+USING (true);
+
 -- ==========================================
 -- 4. Enable Realtime Replication
 -- ==========================================
@@ -218,6 +242,10 @@ EXCEPTION WHEN duplicate_object THEN NULL;
 END $$;
 DO $$ BEGIN
   ALTER PUBLICATION supabase_realtime ADD TABLE public.detected_red_flags;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+DO $$ BEGIN
+  ALTER PUBLICATION supabase_realtime ADD TABLE public.red_flag_rules;
 EXCEPTION WHEN duplicate_object THEN NULL;
 END $$;
 

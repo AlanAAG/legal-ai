@@ -14,38 +14,31 @@ export const analysisService = {
     
     // MOCK MODE: Demo-Proof Wizard of Oz
     if (fileName.toLowerCase().includes('demo_donacion')) {
-      console.log('--- WIZARD OF OZ MODE ACTIVATED (PERSISTENT & RELATIONAL) ---');
+      console.log('--- WIZARD OF OZ MODE ACTIVATED (DATA-DRIVEN) ---');
       
-      // 1. Simulate network delay
+      // 1. Fetch real rules from the database we just seeded!
+      const { data: rules } = await supabase
+        .from('red_flag_rules')
+        .select('*')
+        .limit(3); // Grab 3 diverse rules
+
+      // 2. Simulate network delay
       await new Promise(resolve => setTimeout(resolve, 2000));
       
-      const mockFlags = [
-        {
-          type: 'legal_blocker',
-          title: "🛑 Régimen de Sociedad Conyugal",
-          description: "Se detectó régimen mancomunado. Es obligatoria la firma e INE del cónyuge para proceder.",
-          severity: 'critical'
-        },
-        {
-          type: 'financial_warning',
-          title: "⚠️ Adquisición por Donación",
-          description: "La propiedad fue adquirida por donación. No es apta para la mayoría de los créditos hipotecarios bancarios.",
-          severity: 'high'
+      if (rules && rules.length > 0) {
+        // 3. Persist official rules into detected_red_flags
+        for (const rule of rules) {
+          await supabase.from('detected_red_flags').insert({ 
+            document_slot_id: slotId, 
+            type: rule.id.includes('keyword') ? 'legal_warning' : 'expiry_check', 
+            title: `🛑 ${rule.name}`, 
+            description: rule.description, 
+            severity: rule.severity === 'bloqueante' ? 'critical' : 'high'
+          });
         }
-      ];
-
-      // 2. Persist mock results into the NEW relational table (detected_red_flags)
-      for (const alerta of mockFlags) {
-        await supabase.from('detected_red_flags').insert({ 
-          document_slot_id: slotId, 
-          type: alerta.type, 
-          title: alerta.title, 
-          description: alerta.description, 
-          severity: alerta.severity 
-        });
       }
 
-      // 3. Update the document slot status to 'analyzed'
+      // 4. Update the document slot status
       await supabase
         .from('document_slots')
         .update({

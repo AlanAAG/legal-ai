@@ -60,6 +60,9 @@ export const sellerService = {
     const response = await fetch(functionUrl, {
       method: 'POST',
       body: formData,
+      headers: {
+        'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
+      }
     });
 
     if (!response.ok) {

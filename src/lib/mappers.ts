@@ -22,7 +22,7 @@ export const mapDbDocumentSlotToDocumentSlot = (dbDoc: DbDocumentSlot): Document
   file_name: dbDoc.file_name,
   storagePath: dbDoc.storage_path,
   analysis_status: dbDoc.analysis_status as any,
-  uploaded_at: dbDoc.uploaded_at ? new Date(dbDoc.uploaded_at).toLocaleDateString('es-MX') : undefined
+  uploaded_at: dbDoc.uploaded_at || undefined
 });
 
 export const mapDbOperationToOperation = (

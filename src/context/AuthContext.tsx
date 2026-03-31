@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
+import React, { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react';
 import type { User } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
 import type { DbAgent } from '../lib/types/database.types';
@@ -23,11 +23,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [agent, setAgent] = useState<Agent | null>(null);
   const [loading, setLoading] = useState(true);
   const [isInitialized, setIsInitialized] = useState(false);
+  
+  // Track if we are currently fetching an agent to prevent overlapping calls
+  const isFetchingRef = useRef(false);
 
-  /**
-   * Fetch the agent profile for a given user ID.
-   * Returns null if not found or on error — never throws.
-   */
   const fetchAgent = async (userId: string): Promise<Agent | null> => {
     try {
       const { data, error } = await supabase
@@ -39,93 +38,78 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (data && !error) {
         return mapDbAgentToAgent(data as DbAgent);
       }
-      if (error) {
-        console.warn('[AuthContext] fetchAgent error:', error.message);
-      }
     } catch (err) {
-      console.warn('[AuthContext] fetchAgent exception:', err);
+      console.warn('[AuthContext] fetchAgent failed:', err);
     }
     return null;
   };
 
-  // Public method to refresh agent data (e.g., after profile update)
   const refreshAgent = useCallback(async () => {
-    if (user) {
+    if (user && !isFetchingRef.current) {
+      isFetchingRef.current = true;
       const agentData = await fetchAgent(user.id);
-      if (agentData) {
-        setAgent(agentData);
-      }
+      setAgent(agentData);
+      isFetchingRef.current = false;
     }
   }, [user]);
+
+  // Safety global timeout for initialization
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (!isInitialized) {
+        console.warn('[AuthContext] Global initialization timeout (15s). Forcing ready.');
+        setLoading(false);
+        setIsInitialized(true);
+      }
+    }, 15000);
+    return () => clearTimeout(timer);
+  }, [isInitialized]);
 
   useEffect(() => {
     let isMounted = true;
 
-    const initSession = async () => {
-      // Fail-safe: Never let the app hang indefinitely
-      const timeoutId = setTimeout(() => {
-        if (isMounted && loading) {
-          console.warn('[AuthContext] Loading timed out after 10s. Forcing ready state.');
-          setLoading(false);
-        }
-      }, 10000);
-
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!isMounted) return;
-        
-        const currentUser = session?.user ?? null;
-        setUser(currentUser);
-
-        if (currentUser) {
-          // fetch agent profile
-          const agentPromise = fetchAgent(currentUser.id);
-          const timeoutPromise = new Promise<null>(r => setTimeout(() => r(null), 5000)); // 5s max wait for agent fetch
-          
-          const agentData = await Promise.race([agentPromise, timeoutPromise]);
-          if (isMounted) setAgent(agentData);
-        }
-      } catch (err) {
-        console.warn('[AuthContext] Init failed:', err);
-      } finally {
-        clearTimeout(timeoutId);
-        if (isMounted) {
-          setLoading(false);
-          setIsInitialized(true);
-        }
-      }
-    };
-
-    initSession();
-
-    // Listen for future auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+    const handleSession = async (sessionUser: User | null) => {
       if (!isMounted) return;
       
-      // Set loading to true while fetching agent to prevent premature redirect errors
-      setLoading(true);
+      setUser(sessionUser);
       
-      const currentUser = session?.user ?? null;
-      
-      if (currentUser) {
-        setUser(currentUser);
+      if (sessionUser) {
+        let agentData = await fetchAgent(sessionUser.id);
         
-        // Retry agent fetch with delay — handles trigger race condition on new signups
-        let agentData = await fetchAgent(currentUser.id);
-        if (!agentData) {
-          // Wait for the DB trigger to complete, then retry
+        // Handle potential delay in trigger for new accounts
+        if (!agentData && isMounted) {
           await new Promise(r => setTimeout(r, 1500));
-          if (isMounted) agentData = await fetchAgent(currentUser.id);
+          if (isMounted) agentData = await fetchAgent(sessionUser.id);
         }
+        
         if (isMounted) setAgent(agentData);
       } else {
-        setUser(null);
-        setAgent(null);
+        if (isMounted) setAgent(null);
       }
-      
+
       if (isMounted) {
         setLoading(false);
         setIsInitialized(true);
+      }
+    };
+
+    // Initial check
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (isMounted) {
+        handleSession(session?.user ?? null);
+      }
+    }).catch(err => {
+      console.error('[AuthContext] Session check failed:', err);
+      if (isMounted) {
+        setLoading(false);
+        setIsInitialized(true);
+      }
+    });
+
+    // Listen for changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (isMounted) {
+        handleSession(session?.user ?? null);
       }
     });
 
@@ -133,11 +117,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       isMounted = false;
       subscription.unsubscribe();
     };
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []);
 
   const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    return { error };
+    return await supabase.auth.signInWithPassword({ email, password });
   };
 
   const signUp = async (email: string, password: string, fullName: string) => {
