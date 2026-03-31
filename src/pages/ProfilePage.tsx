@@ -20,13 +20,19 @@ const ProfilePage: React.FC = () => {
   useEffect(() => {
     if (agent) {
       setFormData({
-        nombre: agent.nombre,
-        telefono: agent.telefono,
-        agencia: agent.agencia,
-        esAMPI: agent.esAMPI
+        nombre: agent.nombre || '',
+        telefono: agent.telefono || '',
+        agencia: agent.agencia || '',
+        esAMPI: agent.esAMPI || false
       });
+    } else if (user) {
+      // Agent not yet created; pre-fill what we can
+      setFormData(prev => ({
+        ...prev,
+        nombre: user.user_metadata?.full_name || ''
+      }));
     }
-  }, [agent]);
+  }, [agent, user]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -57,11 +63,6 @@ const ProfilePage: React.FC = () => {
   }
 
   if (user && !agent) {
-    // If user exists but agent profile is missing, initialize email and allow "Edit" mode to create it
-    if (formData.nombre === '' && user.email) {
-      setFormData(prev => ({ ...prev, email: user.email }));
-    }
-
     return (
       <div className="pt-24 pb-12 min-h-screen px-6 flex items-center justify-center">
         <motion.div 

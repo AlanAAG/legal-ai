@@ -8,15 +8,27 @@ export const sellerService = {
    * Fetches operation data using a public share token
    */
   async getOperationByToken(shareToken: string): Promise<Operation | null> {
-    // 1. Get operation via token
+    // 1. Get operation via token (no join — fetch agent separately)
     const { data: opData, error: opError } = await supabase
       .from('operations')
-      .select('*, agents (*)')
+      .select('*')
       .eq('share_token', shareToken)
       .single();
 
     if (opError) {
       console.error('Error fetching operation by token:', opError);
+      return null;
+    }
+
+    // 1b. Fetch agent separately (avoids FK join issues)
+    const { data: agentData, error: agentError } = await supabase
+      .from('agents')
+      .select('*')
+      .eq('id', opData.agent_id)
+      .single();
+
+    if (agentError) {
+      console.error('Error fetching agent for seller portal:', agentError);
       return null;
     }
 
@@ -28,7 +40,7 @@ export const sellerService = {
 
     if (docsError) throw docsError;
 
-    const agent: Agent = mapDbAgentToAgent(opData.agents);
+    const agent: Agent = mapDbAgentToAgent(agentData);
     return mapDbOperationToOperation(opData as DbOperation, agent, docsData as DbDocumentSlot[]);
   },
 

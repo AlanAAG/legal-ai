@@ -2,7 +2,7 @@ import type { DbAgent, DbOperation, DbDocumentSlot } from './types/database.type
 import type { Agent, Operation, Seller, Property, DocumentSlot, DocumentCategory } from '../types';
 
 export const mapDbAgentToAgent = (dbAgent: DbAgent): Agent => ({
-  id: dbAgent.user_id,
+  id: dbAgent.id,
   nombre: dbAgent.nombre,
   email: dbAgent.email,
   telefono: dbAgent.telefono,

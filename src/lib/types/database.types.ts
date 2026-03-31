@@ -1,5 +1,5 @@
 export interface DbAgent {
-  user_id: string; // matches auth.users.id
+  id: string; // PK, matches auth.users.id
   nombre: string;
   email: string;
   telefono: string;

@@ -33,7 +33,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const { data, error } = await supabase
         .from('agents')
         .select('*')
-        .eq('user_id', userId)
+        .eq('id', userId)
         .single();
       
       if (data && !error) {
@@ -108,16 +108,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const currentUser = session?.user ?? null;
       
       if (currentUser) {
-        // Defer setUser slightly or let it update but loading=true protects the UI
         setUser(currentUser);
-        const agentData = await fetchAgent(currentUser.id);
+        
+        // Retry agent fetch with delay — handles trigger race condition on new signups
+        let agentData = await fetchAgent(currentUser.id);
+        if (!agentData) {
+          // Wait for the DB trigger to complete, then retry
+          await new Promise(r => setTimeout(r, 1500));
+          if (isMounted) agentData = await fetchAgent(currentUser.id);
+        }
         if (isMounted) setAgent(agentData);
       } else {
         setUser(null);
         setAgent(null);
       }
       
-      if (isMounted) setLoading(false);
+      if (isMounted) {
+        setLoading(false);
+        setIsInitialized(true);
+      }
     });
 
     return () => {

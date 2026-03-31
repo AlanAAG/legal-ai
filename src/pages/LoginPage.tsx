@@ -31,20 +31,29 @@ const LoginPage: React.FC = () => {
 
     try {
       if (isLogin) {
-        toast.promise(signIn(email, password), {
-          loading: 'Iniciando sesión...',
-          success: '¡Bienvenido!',
-          error: (err) => err.message || 'Credenciales incorrectas'
-        });
+        const { error: signInError } = await signIn(email, password);
+        if (signInError) {
+          setError(signInError.message || 'Credenciales incorrectas');
+          toast.error(signInError.message || 'Credenciales incorrectas');
+        } else {
+          toast.success('¡Bienvenido!');
+        }
       } else {
-        toast.promise(signUp(email, password, fullName), {
-          loading: 'Creando cuenta...',
-          success: (res: any) => res.user?.confirmed_at ? '¡Cuenta lista!' : 'Revisa tu correo para confirmar.',
-          error: (err) => err.message || 'Error al registrarse'
-        });
+        const { error: signUpError, user: newUser } = await signUp(email, password, fullName);
+        if (signUpError) {
+          setError(signUpError.message || 'Error al registrarse');
+          toast.error(signUpError.message || 'Error al registrarse');
+        } else {
+          // If email confirmation is required, show the confirmation screen
+          if (newUser && !newUser.confirmed_at) {
+            setIsSignedUp(true);
+          }
+          toast.success('¡Cuenta creada!');
+        }
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
+      setError(err.message || 'Error inesperado');
     } finally {
       setIsSubmitting(false);
     }
@@ -52,21 +61,28 @@ const LoginPage: React.FC = () => {
 
   const handleDemoLogin = async () => {
     setIsSubmitting(true);
+    setError(null);
     try {
-      await toast.promise(
-        (async () => {
-          try {
-            await signIn('demo@aiabogado.com', 'demo1234');
-          } catch (error) {
-            await signUp('demo@aiabogado.com', 'demo1234', 'Usuario Demo');
+      const { error: loginError } = await signIn('demo@aiabogado.com', 'demo1234');
+      if (loginError) {
+        // If demo account doesn't exist yet, create it
+        const { error: signUpError } = await signUp('demo@aiabogado.com', 'demo1234', 'Usuario Demo');
+        if (signUpError) {
+          toast.error('Error en acceso demo: ' + signUpError.message);
+        } else {
+          // Try logging in again after signup
+          const { error: retryError } = await signIn('demo@aiabogado.com', 'demo1234');
+          if (retryError) {
+            toast.info('Cuenta demo creada. Si se requiere confirmación por email, revisa tu correo.');
+          } else {
+            toast.success('Acceso demo concedido.');
           }
-        })(),
-        {
-          loading: 'Iniciando modo demo...',
-          success: 'Acceso demo concedido.',
-          error: 'Error en acceso demo'
         }
-      );
+      } else {
+        toast.success('Acceso demo concedido.');
+      }
+    } catch (err: any) {
+      toast.error('Error en acceso demo');
     } finally {
       setIsSubmitting(false);
     }

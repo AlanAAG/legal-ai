@@ -81,7 +81,7 @@ export const operationService = {
     const { data: agentData, error: agentError } = await supabase
       .from('agents')
       .select('*')
-      .eq('user_id', opData.agent_id)
+      .eq('id', opData.agent_id)
       .single();
     
     if (agentError) throw agentError;
@@ -175,7 +175,7 @@ export const operationService = {
     const { data: agentData, error: agentError } = await supabase
       .from('agents')
       .select('*')
-      .eq('user_id', opData.agent_id)
+      .eq('id', opData.agent_id)
       .single();
     
     if (agentError) throw agentError;

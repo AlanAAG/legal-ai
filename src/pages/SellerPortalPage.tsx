@@ -1,7 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import { sellerService } from '../modules/operations/services/sellerService';
-import { documentService } from '../modules/operations/services/documentService';
 import type { Operation, DocumentSlot } from '../types';
 import { 
   Loader2, 
@@ -52,7 +51,7 @@ export const SellerPortalPage: React.FC = () => {
 
     try {
       setUploadStates(prev => ({ ...prev, [slotId]: { loading: true, success: false, error: null } }));
-      await documentService.uploadSellerDocument(operation!.id, slotId, file);
+      await sellerService.uploadPublicDocument(shareToken!, slotId, file);
       
       setUploadStates(prev => ({ ...prev, [slotId]: { loading: false, success: true, error: null } }));
       
